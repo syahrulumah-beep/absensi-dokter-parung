@@ -1,0 +1,1265 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}[hidden]{display:none!important}</style>
+<title>Sistem Pengingat Absensi Dokter Spesialis Klinik Utama Rawat Inap Parung</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap">
+<style>
+/* Tata letak: sidebar biru tua tetap di kiri, area kerja terang di kanan.
+   Jadwal dibaca seperti papan jaga klinik: jam di kiri, dokter di tengah, status di kanan. */
+:root{
+  --bg:#f2f5fa; --surface:#ffffff; --surface-2:#f6f8fc; --line:#dbe3f0; --line-strong:#c3cee2;
+  --fg:#0e1c38; --muted:#586a89;
+  --primary:#0b2a5b; --primary-hover:#123a7d; --primary-fg:#ffffff;
+  --sky:#e3f1fd; --sky-line:#b9dcf8; --sky-fg:#0a4a85; --sky-strong:#4aa8ef;
+  --side-bg:#0b2a5b; --side-fg:#e8f0fc; --side-muted:#9db4dc; --side-active:#173b78; --side-line:#264a8a;
+  --ok:#0f6b42; --ok-bg:#dff4e8; --warn:#8a5200; --warn-bg:#fdf0d2; --bad:#a82a22; --bad-bg:#fde4e1; --idle:#4b5873; --idle-bg:#e8ecf4;
+  --focus:#2b8be0; --shadow:0 1px 2px rgba(14,28,56,.06),0 4px 14px rgba(14,28,56,.05); --overlay:rgba(8,18,38,.5);
+  --f-head:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#09111f; --surface:#0f1a2e; --surface-2:#13213a; --line:#1f3050; --line-strong:#2d4570;
+  --fg:#e5ecf8; --muted:#92a4c4;
+  --primary:#4a9af0; --primary-hover:#69adf4; --primary-fg:#06142b;
+  --sky:#12294a; --sky-line:#1f4778; --sky-fg:#9fd0fa; --sky-strong:#4aa8ef;
+  --side-bg:#07142b; --side-fg:#e3ecfa; --side-muted:#8ea3c8; --side-active:#12295a; --side-line:#1a3263;
+  --ok:#6ad49c; --ok-bg:#103423; --warn:#f0c068; --warn-bg:#3a2a0b; --bad:#ff9a92; --bad-bg:#43191a; --idle:#a9b6cf; --idle-bg:#1b2840;
+  --focus:#69adf4; --shadow:0 1px 2px rgba(0,0,0,.3); --overlay:rgba(2,6,14,.65); color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#09111f; --surface:#0f1a2e; --surface-2:#13213a; --line:#1f3050; --line-strong:#2d4570;
+  --fg:#e5ecf8; --muted:#92a4c4;
+  --primary:#4a9af0; --primary-hover:#69adf4; --primary-fg:#06142b;
+  --sky:#12294a; --sky-line:#1f4778; --sky-fg:#9fd0fa; --sky-strong:#4aa8ef;
+  --side-bg:#07142b; --side-fg:#e3ecfa; --side-muted:#8ea3c8; --side-active:#12295a; --side-line:#1a3263;
+  --ok:#6ad49c; --ok-bg:#103423; --warn:#f0c068; --warn-bg:#3a2a0b; --bad:#ff9a92; --bad-bg:#43191a; --idle:#a9b6cf; --idle-bg:#1b2840;
+  --focus:#69adf4; --shadow:0 1px 2px rgba(0,0,0,.3); --overlay:rgba(2,6,14,.65); color-scheme:dark; }
+
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14.5px;line-height:1.5;-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--side-bg)}
+h1,h2,h3{font-family:var(--f-head);margin:0;text-wrap:balance;letter-spacing:-.01em}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.ic{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ===== Kerangka ===== */
+.app{display:grid;grid-template-columns:252px minmax(0,1fr);min-height:100vh}
+.side{background:var(--side-bg);color:var(--side-fg);position:sticky;top:env(safe-area-inset-top,0px);align-self:start;height:100vh;overflow-y:auto;z-index:40}
+.side-inner{display:flex;flex-direction:column;min-height:100%;padding-block:20px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:16px;gap:18px}
+.brand{display:flex;gap:11px;align-items:center}
+.brand-mark{width:38px;height:38px;border-radius:10px;background:var(--sky-strong);color:#06234a;display:grid;place-items:center;flex:none}
+.brand-mark .ic{width:22px;height:22px;stroke-width:2.2}
+.brand-text{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+.brand-text strong{font-family:var(--f-head);font-size:15px;font-weight:800}
+.brand-text span{font-size:12px;color:var(--side-muted)}
+.clinic{font-size:12px;color:var(--side-muted);border-top:1px solid var(--side-line);padding-top:14px;line-height:1.4}
+.clinic b{display:block;color:var(--side-fg);font-weight:600;font-size:13px}
+#nav{display:flex;flex-direction:column;gap:3px}
+.nav-i{display:flex;align-items:center;gap:11px;width:100%;padding:10px 12px;border:0;border-radius:9px;background:transparent;color:var(--side-fg);text-align:left;font-size:14px;font-weight:500}
+.nav-i:hover{background:var(--side-active)}
+.nav-i[aria-current="page"]{background:var(--side-active);box-shadow:inset 3px 0 0 var(--sky-strong);font-weight:600}
+.nav-i .lbl{flex:1;min-width:0}
+.badge{background:#ff6b5e;color:#2b0500;font-size:11.5px;font-weight:700;border-radius:999px;min-width:20px;padding:1px 6px;text-align:center}
+.side-foot{margin-top:auto;border-top:1px solid var(--side-line);padding-top:14px;font-size:12px;color:var(--side-muted);display:flex;flex-direction:column;gap:6px}
+.side-foot .clock{color:var(--side-fg);font-weight:600;font-size:13px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--sky-strong)}
+.dot.warn{background:#f0b449}
+.main{min-width:0}
+.main-inner{padding-block:26px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1280px}
+.topbar{display:none}
+.scrim{display:none}
+
+/* ===== Elemen umum ===== */
+.page-head{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:flex-end;margin-bottom:20px}
+.page-head h1{font-size:25px;font-weight:800}
+.sub{margin:4px 0 0;color:var(--muted);max-width:60ch}
+.head-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);min-width:0}
+.card-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid var(--line)}
+.card-h h2{font-size:15.5px;font-weight:700}
+.card-b{padding:16px 18px}
+.btn{display:inline-flex;align-items:center;gap:8px;justify-content:center;border:1px solid var(--line-strong);background:var(--surface);color:var(--fg);padding:8px 14px;border-radius:9px;font-weight:600;font-size:13.5px;text-decoration:none;line-height:1.2;min-height:38px}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:var(--primary-fg)}
+.btn.primary:hover{background:var(--primary-hover)}
+.btn.wa{background:var(--sky);border-color:var(--sky-line);color:var(--sky-fg)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.danger.solid{background:var(--bad);color:#fff;border-color:var(--bad)}
+.btn.sm{padding:5px 10px;min-height:32px;font-size:12.5px;gap:6px}
+.btn[disabled],.btn[aria-disabled="true"]{opacity:.5;cursor:not-allowed}
+.icon-btn{display:inline-grid;place-items:center;width:36px;height:36px;border-radius:9px;border:1px solid var(--line-strong);background:var(--surface);color:var(--fg)}
+.icon-btn:hover{background:var(--surface-2)}
+.icon-btn.plain{border-color:transparent;background:transparent}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok)} .chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.bad{background:var(--bad-bg);color:var(--bad)} .chip.idle{background:var(--idle-bg);color:var(--idle)}
+.chip.sky{background:var(--sky);color:var(--sky-fg)}
+.selw{position:relative;display:inline-block}
+.selw select{appearance:none;-webkit-appearance:none;border:1px solid transparent;border-radius:999px;padding:4px 28px 4px 11px;font-weight:600;font-size:12.5px;cursor:pointer;max-width:100%}
+.selw::after{content:"";position:absolute;right:11px;top:50%;width:6px;height:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.selw.ok{color:var(--ok)} .selw.ok select{background:var(--ok-bg)}
+.selw.warn{color:var(--warn)} .selw.warn select{background:var(--warn-bg)}
+.selw.bad{color:var(--bad)} .selw.bad select{background:var(--bad-bg)}
+.selw.idle{color:var(--idle)} .selw.idle select{background:var(--idle-bg)}
+.selw select{color:inherit}
+.selw select option{color:var(--fg);background:var(--surface)}
+.fld{display:flex;flex-direction:column;gap:5px;min-width:0}
+.fld>span,.lbl-t{font-size:12.5px;font-weight:600;color:var(--muted)}
+input[type=text],input[type=tel],input[type=date],input[type=time],input[type=number],input[type=search],input[type=datetime-local],select.in,textarea{width:100%;min-width:0;border:1px solid var(--line-strong);background:var(--surface);border-radius:9px;padding:8px 11px;min-height:38px}
+textarea{resize:vertical;min-height:96px;line-height:1.5}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:.8}
+.hint{font-size:12.5px;color:var(--muted)}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:14px}
+.toolbar .fld{flex:1 1 150px}
+.toolbar .grow{flex:2 1 220px}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:10px;padding:3px;background:var(--surface-2);gap:2px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;padding:6px 12px;border-radius:7px;font-weight:600;font-size:13px;color:var(--muted)}
+.seg button.on{background:var(--primary);color:var(--primary-fg)}
+.seg .cnt{margin-left:6px;font-size:11.5px;background:var(--bad-bg);color:var(--bad);border-radius:999px;padding:0 6px}
+.seg button.on .cnt{background:var(--primary-fg);color:var(--primary)}
+.banner{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;border:1px solid var(--sky-line);background:var(--sky);color:var(--sky-fg);border-radius:11px;padding:11px 14px;margin-bottom:16px}
+.banner .ic{margin-top:2px}
+.banner p{margin:0;flex:1 1 260px}
+.banner.warn{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
+.banner.bad{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
+.empty{padding:34px 18px;text-align:center;color:var(--muted)}
+.empty h3{font-size:16px;color:var(--fg);margin-bottom:6px}
+.empty .btn{margin-top:12px}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--sky);color:var(--sky-fg);display:grid;place-items:center;font-weight:700;font-size:13px;flex:none;font-family:var(--f-head)}
+
+/* ===== Statistik & dashboard ===== */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:18px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow);min-width:0}
+.stat-top{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:13px;font-weight:600}
+.stat-val{font-family:var(--f-head);font-size:34px;font-weight:800;line-height:1.1;margin:8px 0 2px;font-variant-numeric:tabular-nums}
+.stat-sub{font-size:12.5px;color:var(--muted)}
+.stat.ok .stat-val{color:var(--ok)} .stat.warn .stat-val{color:var(--warn)}
+.dash-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:16px;align-items:start}
+.stack{display:flex;flex-direction:column;gap:16px;min-width:0}
+.date-nav{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.date-nav input{width:auto;min-width:150px}
+.srow{display:grid;grid-template-columns:112px minmax(0,1fr) auto;gap:6px 14px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line)}
+.srow:last-child{border-bottom:0}
+.srow .t{font-family:var(--f-mono);font-weight:500;font-size:13.5px;font-variant-numeric:tabular-nums}
+.srow .who{display:flex;gap:11px;align-items:center;min-width:0}
+.srow .who div{min-width:0}
+.srow .nm{font-weight:600;overflow-wrap:anywhere}
+.srow .sp{font-size:12.5px;color:var(--muted)}
+.srow .act{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.srow .note{grid-column:2/-1;font-size:12.5px;color:var(--muted)}
+.nrow{padding:11px 18px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:5px}
+.nrow:last-child{border-bottom:0}
+.nrow .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.nrow .nm{font-weight:600}
+.nrow .meta{font-size:12.5px;color:var(--muted)}
+.nrow .btns{display:flex;gap:6px;flex-wrap:wrap}
+.daylbl{padding:8px 18px;background:var(--surface-2);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);border-bottom:1px solid var(--line)}
+
+/* ===== Tabel ===== */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:10px 14px;background:var(--surface-2);border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.days{display:flex;gap:3px;flex-wrap:wrap}
+.days i{font-style:normal;font-size:11.5px;font-weight:600;padding:1px 6px;border-radius:5px;background:var(--sky);color:var(--sky-fg)}
+.row-act{display:flex;gap:6px;flex-wrap:wrap}
+.cell-name{display:flex;gap:10px;align-items:center;min-width:180px}
+.note-in{min-width:150px;padding:6px 9px;min-height:34px}
+.sumbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+
+/* ===== Kalender ===== */
+.cal-wrap{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:start}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;padding:14px 16px 16px}
+.cal-h{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:center;padding:4px 0}
+.cal-d{min-height:64px;border:1px solid var(--line);border-radius:9px;background:var(--surface);padding:6px 7px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;text-align:left;gap:4px;min-width:0}
+.cal-d:hover{border-color:var(--sky-strong)}
+.cal-d .n{font-weight:600;font-size:13.5px;font-variant-numeric:tabular-nums}
+.cal-d.out{background:var(--surface-2);color:var(--muted)}
+.cal-d.today .n{background:var(--primary);color:var(--primary-fg);border-radius:999px;min-width:24px;height:24px;display:grid;place-items:center;padding:0 5px;margin:-3px 0 0 -3px}
+.cal-d.sel{border-color:var(--primary);background:var(--sky);box-shadow:0 0 0 2px var(--sky-strong) inset}
+.cal-d .mk{display:flex;gap:3px;align-items:center;flex-wrap:wrap}
+.cal-d .cnt{font-size:11.5px;font-weight:700;background:var(--sky-strong);color:#04213f;border-radius:5px;padding:0 6px;min-width:20px;text-align:center}
+.cal-d .pt{width:7px;height:7px;border-radius:50%;background:var(--idle)}
+.pt.ok{background:var(--ok)} .pt.warn{background:#e0a02c} .pt.bad{background:var(--bad)} .pt.idle{background:var(--idle)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;padding:0 16px 14px;font-size:12.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+
+/* ===== Pengingat ===== */
+.rem{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.rem:last-child{border-bottom:0}
+.rem-top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}
+.rem .nm{font-family:var(--f-head);font-weight:700;font-size:16px;overflow-wrap:anywhere}
+.rem dl{margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 14px;font-size:13.5px}
+.rem dt{color:var(--muted)} .rem dd{margin:0}
+.rem details summary{cursor:pointer;font-size:13px;color:var(--sky-fg);font-weight:600}
+.rem pre{white-space:pre-wrap;font-family:var(--f-body);background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin:8px 0 0;font-size:13.5px}
+.rem .btns{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ===== Modal & toast ===== */
+.modal-backdrop{position:fixed;inset:0;background:var(--overlay);z-index:100;display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.modal{background:var(--surface);color:var(--fg);border-radius:14px;border:1px solid var(--line);width:min(640px,100%);max-height:100%;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.modal.sm{width:min(460px,100%)}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+.modal-head h2{font-size:18px;font-weight:800}
+.modal-body{padding:18px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;min-height:0}
+.modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--line);flex-wrap:wrap}
+.chk-row{display:flex;gap:6px;flex-wrap:wrap}
+.chk{position:relative}
+.chk input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.chk span{display:inline-block;border:1px solid var(--line-strong);border-radius:8px;padding:6px 12px;font-weight:600;font-size:13px;background:var(--surface);min-width:48px;text-align:center}
+.chk input:checked+span{background:var(--primary);color:var(--primary-fg);border-color:var(--primary)}
+.chk input:focus-visible+span{outline:2px solid var(--focus);outline-offset:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.dchip{display:inline-flex;align-items:center;gap:6px;background:var(--sky);color:var(--sky-fg);border-radius:8px;padding:3px 4px 3px 10px;font-size:13px;font-weight:600}
+.dchip button{border:0;background:transparent;color:inherit;width:22px;height:22px;border-radius:5px;display:grid;place-items:center;padding:0}
+.dchip button:hover{background:var(--sky-line)}
+.preview{border:1px dashed var(--line-strong);border-radius:10px;padding:10px 12px;background:var(--surface-2);font-size:13.5px;display:flex;flex-direction:column;gap:5px}
+.preview .err{color:var(--bad);font-weight:600}
+.preview .wrn{color:var(--warn)}
+.preview .good{color:var(--ok);font-weight:600}
+.switch{display:flex;align-items:center;gap:10px;font-weight:600}
+.switch input{width:20px;height:20px;accent-color:var(--primary)}
+.toasts{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));z-index:200;display:flex;flex-direction:column;gap:8px;max-width:min(380px,calc(100vw - 32px))}
+.toast{background:var(--primary);color:var(--primary-fg);border-radius:11px;padding:11px 14px;box-shadow:0 8px 28px rgba(0,0,0,.28);display:flex;gap:12px;align-items:center;font-weight:500}
+.toast.err{background:var(--bad);color:#fff}
+.toast button{border:1px solid currentColor;background:transparent;color:inherit;border-radius:7px;padding:3px 9px;font-weight:600;white-space:nowrap}
+.set-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:16px;align-items:start}
+.form-col{display:flex;flex-direction:column;gap:14px}
+.ph{display:flex;flex-wrap:wrap;gap:6px}
+.ph code{font-family:var(--f-mono);font-size:12px;background:var(--sky);color:var(--sky-fg);padding:1px 7px;border-radius:5px}
+
+/* ===== Responsif ===== */
+@media (max-width:1100px){ .dash-grid,.cal-wrap{grid-template-columns:minmax(0,1fr)} }
+@media (max-width:900px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .side{position:fixed;left:0;top:0;bottom:0;height:auto;width:min(290px,86vw);transform:translateX(-102%);transition:transform .2s ease;z-index:90;padding-top:env(safe-area-inset-top,0px)}
+  .side.open{transform:none}
+  .scrim.open{display:block;position:fixed;inset:0;background:var(--overlay);z-index:80}
+  .topbar{display:flex;align-items:center;gap:10px;position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--side-bg);color:var(--side-fg);padding:8px max(12px,env(safe-area-inset-right,0px)) 8px max(12px,env(safe-area-inset-left,0px))}
+  .topbar strong{flex:1;font-family:var(--f-head);font-size:15px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .topbar .icon-btn{background:transparent;border-color:var(--side-line);color:var(--side-fg);position:relative}
+  .topbar .badge{position:absolute;top:-6px;right:-6px}
+  .main-inner{padding-block:18px 48px}
+  .page-head h1{font-size:22px}
+}
+@media (max-width:720px){
+  .rt thead{display:none}
+  .rt,.rt tbody,.rt tr,.rt td{display:block;width:100%}
+  .rt tr{padding:12px 14px;border-bottom:1px solid var(--line)}
+  .rt tr:last-child{border-bottom:0}
+  .rt td{border:0;padding:4px 0;display:flex;gap:12px;justify-content:space-between;align-items:center}
+  .rt td::before{content:attr(data-l);font-size:12px;font-weight:600;color:var(--muted);flex:none;max-width:42%}
+  .rt td[data-l=""]::before{display:none}
+  .rt td.num{text-align:right}
+  .rt .cell-name{min-width:0}
+  .note-in{min-width:0;width:100%}
+  .srow{grid-template-columns:minmax(0,1fr) auto}
+  .srow .t{grid-column:1/-1}
+  .srow .note{grid-column:1/-1}
+  .row2{grid-template-columns:minmax(0,1fr)}
+  .cal-d{min-height:50px;padding:4px 5px}
+  .cal{gap:3px;padding:10px}
+  .cal-d .pt{display:none}
+  .stat-val{font-size:28px}
+}
+@media (prefers-reduced-motion:reduce){ .side{transition:none} }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></symbol>
+    <symbol id="i-clipboard" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-message" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.2A8.4 8.4 0 1 1 21 11.5z"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5M12 3v12"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+    <symbol id="i-repeat" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></symbol>
+    <symbol id="i-cross" viewBox="0 0 24 24"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></symbol>
+  </defs>
+</svg>
+
+<div class="app" id="app">
+  <aside class="side" id="side" aria-label="Navigasi utama">
+    <div class="side-inner">
+      <div class="brand">
+        <div class="brand-mark"><svg class="ic"><use href="#i-cross"/></svg></div>
+        <div class="brand-text"><strong>Pengingat Absensi</strong><span>Dokter Spesialis</span></div>
+      </div>
+      <div class="clinic" id="clinic-box"></div>
+      <nav id="nav" aria-label="Menu"></nav>
+      <div class="side-foot" id="side-foot"></div>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim" data-act="menu-close"></div>
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn" data-act="menu-open" aria-label="Buka menu"><svg class="ic"><use href="#i-menu"/></svg></button>
+      <strong id="top-title">Dashboard</strong>
+      <button class="icon-btn" data-nav="pengingat" aria-label="Pengingat absensi"><svg class="ic"><use href="#i-bell"/></svg><span class="badge" id="top-badge" hidden></span></button>
+    </header>
+    <main class="main-inner" id="view" tabindex="-1"><div class="empty">Memuat data…</div></main>
+  </div>
+</div>
+<div id="modal-root"></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+'use strict';
+/* ===================== Utilitas tanggal & format ===================== */
+// <dates>
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const parseYmd = s => { const p = s.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); };
+const todayStr = () => ymd(new Date());
+const addDays = (s, n) => { const d = parseYmd(s); d.setDate(d.getDate() + n); return ymd(d); };
+// </dates>
+const HARI = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const HARI_S = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+const BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const BULAN_S = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+const WEEK_ORDER = [1,2,3,4,5,6,0];
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = (s, r) => (r || document).querySelector(s);
+const fmtLong = s => { const d = parseYmd(s); return HARI[d.getDay()] + ', ' + d.getDate() + ' ' + BULAN[d.getMonth()] + ' ' + d.getFullYear(); };
+const fmtShort = s => { const d = parseYmd(s); return d.getDate() + ' ' + BULAN_S[d.getMonth()] + ' ' + d.getFullYear(); };
+const fmtDay = s => { const d = parseYmd(s); return HARI_S[d.getDay()] + ', ' + d.getDate() + ' ' + BULAN_S[d.getMonth()]; };
+const dotT = t => String(t || '').replace(':', '.');
+const fmtJam = (a, b) => dotT(a) + '–' + dotT(b);
+const toMin = t => { const p = t.split(':').map(Number); return p[0] * 60 + p[1]; };
+const dtOf = (date, time) => { const a = date.split('-').map(Number), b = time.split(':').map(Number); return new Date(a[0], a[1] - 1, a[2], b[0], b[1]); };
+const fmtDT = d => d.getDate() + ' ' + BULAN_S[d.getMonth()] + ' ' + d.getFullYear() + ', ' + pad(d.getHours()) + '.' + pad(d.getMinutes());
+const fmtStamp = ms => fmtDT(new Date(ms));
+const relDay = s => { const t = todayStr(); if (s === t) return 'Hari ini'; if (s === addDays(t, 1)) return 'Besok'; return fmtDay(s); };
+const uid = p => p + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const ic = n => '<svg class="ic" aria-hidden="true"><use href="#i-' + n + '"/></svg>';
+
+/* ===================== Data awal contoh ===================== */
+// <seed>
+function buildSeed(t) {
+  const D = [
+    ['dok-pd','dr.','Andi Prasetyo','Sp.PD','Spesialis Penyakit Dalam','081200000001',[1,3,5],'08:00','12:00'],
+    ['dok-anak','dr.','Ratna Wulandari','Sp.A','Spesialis Anak','081200000002',[1,2,4],'09:00','13:00'],
+    ['dok-og','dr.','Maya Kusuma','Sp.OG','Spesialis Obstetri dan Ginekologi','081200000003',[2,4,6],'10:00','14:00'],
+    ['dok-bedah','dr.','Bambang Hartono','Sp.B','Spesialis Bedah','081200000004',[3,5],'13:00','17:00'],
+    ['dok-rad','dr.','Dewi Anggraini','Sp.Rad','Spesialis Radiologi','081200000005',[1,4],'08:00','11:00'],
+    ['dok-paru','dr.','Rizal Firmansyah','Sp.P','Spesialis Paru','081200000006',[1,3],'14:00','17:00'],
+    ['dok-pk','dr.','Sinta Maharani','Sp.PK','Spesialis Patologi Klinik','081200000007',[5,6],'08:00','12:00']
+  ];
+  const doctors = {}, schedules = {};
+  D.forEach((r, i) => {
+    doctors[r[0]] = { prefix: r[1], name: r[2], suffix: r[3], specialty: r[4], phone: r[5], days: r[6], start: r[7], end: r[8], active: true, sample: true, createdAt: 1000 + i };
+    for (let k = 0; k < 7; k++) {
+      const date = addDays(t, k);
+      if (r[6].indexOf(parseYmd(date).getDay()) >= 0) {
+        schedules['s-' + r[0] + '-' + date] = { doctorId: r[0], date: date, start: r[7], end: r[8], attendance: 'belum', note: '', remind: { mode: '1d' }, remindDone: false, sample: true, createdAt: 1000 + i };
+      }
+    }
+  });
+  const first = schedules['s-dok-pd-' + t];
+  if (first) first.attendance = 'sudah';
+  return { doctors: doctors, schedules: schedules };
+}
+// </seed>
+
+/* ===================== Status & pengaturan bawaan ===================== */
+const ST = {
+  belum: { label: 'Belum absensi', cls: 'warn' },
+  sudah: { label: 'Sudah absensi', cls: 'ok' },
+  tidak_hadir: { label: 'Tidak hadir', cls: 'bad' },
+  dibatalkan: { label: 'Jadwal dibatalkan', cls: 'idle' }
+};
+const SPECIALTIES = ['Spesialis Penyakit Dalam','Spesialis Anak','Spesialis Obstetri dan Ginekologi','Spesialis Bedah','Spesialis Radiologi','Spesialis Paru','Spesialis Patologi Klinik'];
+const DEFAULT_TEMPLATE = 'Yth. {nama_dokter}, kami mengingatkan bahwa jadwal praktik di {klinik} pada tanggal {tanggal} pukul {jam}. Mohon melakukan absensi kehadiran sesuai jadwal. Terima kasih.';
+const DEFAULT_SETTINGS = { clinicName: 'Klinik Utama Rawat Inap Parung', adminName: '', template: DEFAULT_TEMPLATE, defaultRemind: { mode: '1d', value: 30, unit: 'menit' }, sampleDismissed: false };
+
+const S = {
+  mode: 'loading', loaded: false, slow: false, readOnly: false, dbError: '',
+  doctors: {}, schedules: {}, logs: {}, settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),
+  ui: { page: 'dashboard', dashDate: null, calMonth: null, calSel: null, calDoc: '', remTab: 'due', f: {} }
+};
+(function initFilters() {
+  const t = todayStr(), d = parseYmd(t);
+  S.ui.calMonth = t.slice(0, 7);
+  S.ui.calSel = t;
+  S.ui.f = {
+    docQ: '', docSpec: '', docStatus: '',
+    monPreset: 'today', monFrom: t, monTo: t, monDoc: '', monSpec: '', monStatus: '',
+    repTab: 'jadwal', repDoc: '', repSpec: '',
+    repFrom: ymd(new Date(d.getFullYear(), d.getMonth(), 1)), repTo: ymd(new Date(d.getFullYear(), d.getMonth() + 1, 0))
+  };
+})();
+
+/* ===================== Akses data ===================== */
+const docName = d => (d.prefix ? d.prefix + ' ' : '') + d.name + (d.suffix ? ', ' + d.suffix : '');
+const GONE = { name: '(Dokter dihapus)', prefix: '', suffix: '', specialty: '-', phone: '', days: [], active: false };
+const dOf = s => S.doctors[s.doctorId] || GONE;
+const docs = () => Object.values(S.doctors).sort((a, b) => docName(a).localeCompare(docName(b), 'id'));
+const scheds = () => Object.values(S.schedules);
+const schedulesOn = d => scheds().filter(s => s.date === d);
+const byTime = (a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start) || docName(dOf(a)).localeCompare(docName(dOf(b)), 'id');
+const initials = d => d.name.split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
+
+function remindAt(s) {
+  const st = dtOf(s.date, s.start), r = s.remind || { mode: '1d' };
+  if (r.mode === '3h') return new Date(st.getTime() - 3 * 3600000);
+  if (r.mode === '1h') return new Date(st.getTime() - 3600000);
+  if (r.mode === 'abs' && r.abs) { const p = r.abs.split('T'), a = p[0].split('-').map(Number), b = p[1].split(':').map(Number); return new Date(a[0], a[1] - 1, a[2], b[0], b[1]); }
+  if (r.mode === 'custom') { const u = r.unit === 'hari' ? 86400000 : r.unit === 'jam' ? 3600000 : 60000; return new Date(st.getTime() - (Number(r.value) || 0) * u); }
+  return new Date(st.getTime() - 86400000);
+}
+function remLabel(r) {
+  r = r || { mode: '1d' };
+  if (r.mode === '3h') return '3 jam sebelumnya';
+  if (r.mode === '1h') return '1 jam sebelumnya';
+  if (r.mode === 'custom') return r.value + ' ' + r.unit + ' sebelumnya';
+  if (r.mode === 'abs') return 'Waktu khusus';
+  return '1 hari sebelumnya';
+}
+function reminderGroups(now) {
+  now = now || new Date();
+  const g = { due: [], upcoming: [], done: [] };
+  scheds().forEach(s => {
+    if (s.attendance === 'dibatalkan') return;
+    if (s.remindDone) { g.done.push(s); return; }
+    if (s.attendance !== 'belum') return;
+    if (dtOf(s.date, s.end) <= now) return;
+    (remindAt(s) <= now ? g.due : g.upcoming).push(s);
+  });
+  g.due.sort(byTime);
+  g.upcoming.sort((a, b) => remindAt(a) - remindAt(b));
+  g.done.sort((a, b) => byTime(b, a));
+  return g;
+}
+function findConflicts(doctorId, date, start, end, exceptId) {
+  return scheds().filter(s => s.doctorId === doctorId && s.date === date && s.id !== exceptId && s.attendance !== 'dibatalkan' && toMin(start) < toMin(s.end) && toMin(s.start) < toMin(end));
+}
+function waNumber(p) {
+  let n = String(p || '').replace(/\D/g, '');
+  if (!n) return '';
+  if (n.startsWith('0')) n = '62' + n.slice(1); else if (n.startsWith('8')) n = '62' + n;
+  return n;
+}
+function waMessage(s) {
+  const d = dOf(s), set = S.settings;
+  return String(set.template || DEFAULT_TEMPLATE)
+    .split('{nama_dokter}').join(docName(d))
+    .split('{spesialisasi}').join(d.specialty)
+    .split('{tanggal}').join(fmtLong(s.date))
+    .split('{jam}').join(fmtJam(s.start, s.end) + ' WIB')
+    .split('{klinik}').join(set.clinicName || DEFAULT_SETTINGS.clinicName);
+}
+
+/* ===================== Penyimpanan ===================== */
+const LS_KEY = 'absensi-dokter-parung:v1';
+let DB = null;
+
+function saveLocal() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify({ doctors: S.doctors, schedules: S.schedules, logs: S.logs, settings: S.settings })); return true; }
+  catch (e) { if (S.mode === 'local') { S.mode = 'memory'; } return false; }
+}
+function loadLocal() {
+  let raw = null;
+  try { raw = localStorage.getItem(LS_KEY); } catch (e) { S.mode = 'memory'; }
+  if (S.mode !== 'memory') S.mode = 'local';
+  if (raw) {
+    try {
+      const o = JSON.parse(raw);
+      ['doctors', 'schedules', 'logs'].forEach(k => { S[k] = o[k] || {}; Object.keys(S[k]).forEach(id => { S[k][id].id = id; }); });
+      S.settings = Object.assign({}, JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), o.settings || {});
+    } catch (e) { /* data rusak: mulai kosong */ }
+  } else {
+    const seed = buildSeed(todayStr());
+    Object.keys(seed.doctors).forEach(id => { S.doctors[id] = Object.assign({ id: id }, seed.doctors[id]); });
+    Object.keys(seed.schedules).forEach(id => { S.schedules[id] = Object.assign({ id: id }, seed.schedules[id]); });
+    saveLocal();
+  }
+  S.loaded = true;
+}
+function dbFail(e) {
+  const code = e && e.code;
+  if (code === 'invalid_argument') { S.readOnly = true; toast('Akun ini tidak memiliki izin mengubah data. Hanya pemilik atau editor yang dapat menyimpan.', 'err'); }
+  else if (code === 'quota_exceeded') toast('Penyimpanan penuh. Hapus sebagian data lama lalu coba lagi.', 'err');
+  else toast('Perubahan belum tersimpan. Periksa koneksi lalu coba lagi.', 'err');
+  render();
+}
+async function put(col, id, data) {
+  const obj = Object.assign({}, data); delete obj.id;
+  if (S.mode === 'db') {
+    try { await DB.doc(col + '/' + id).set(obj); return true; } catch (e) { dbFail(e); return false; }
+  }
+  S[col][id] = Object.assign({ id: id }, obj);
+  saveLocal(); render(); return true;
+}
+async function del(col, id) {
+  if (S.mode === 'db') {
+    try { await DB.doc(col + '/' + id).delete(); return true; } catch (e) { dbFail(e); return false; }
+  }
+  delete S[col][id]; saveLocal(); render(); return true;
+}
+async function putSettings(patch) {
+  const next = Object.assign({}, S.settings, patch);
+  if (S.mode === 'db') {
+    try { await DB.doc('settings/main').set(next); return true; } catch (e) { dbFail(e); return false; }
+  }
+  S.settings = next; saveLocal(); render(); return true;
+}
+async function runLimited(tasks, n) {
+  let i = 0, ok = true;
+  async function worker() { while (i < tasks.length) { const t = tasks[i++]; const r = await t(); if (r === false) ok = false; } }
+  await Promise.all(Array.from({ length: Math.min(n, tasks.length) }, worker));
+  return ok;
+}
+function subscribeDb() {
+  const got = {};
+  const timer = setTimeout(() => { if (!S.loaded) { S.slow = true; render(); } }, 10000);
+  const mark = (k, snap) => {
+    if (!snap.metadata.fromCache) got[k] = true;
+    if (!S.loaded && ['doctors', 'schedules', 'logs', 'settings'].every(x => got[x])) { S.loaded = true; S.slow = false; clearTimeout(timer); }
+  };
+  const onErr = e => { if (e && e.code === 'revoked') { S.mode = 'revoked'; } S.dbError = (e && e.message) || 'Penyimpanan tidak dapat dibaca'; render(); };
+  ['doctors', 'schedules', 'logs'].forEach(col => {
+    DB.collection(col).onSnapshot(snap => {
+      const m = {};
+      snap.docs.forEach(d => { m[d.id] = Object.assign({}, d.data(), { id: d.id }); });
+      S[col] = m; mark(col, snap); onData();
+    }, onErr);
+  });
+  DB.doc('settings/main').onSnapshot(snap => {
+    S.settings = Object.assign({}, JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), snap.exists ? snap.data() : {});
+    mark('settings', snap); onData();
+  }, onErr);
+}
+async function initStorage() {
+  let db = null;
+  try { db = window.claude && window.claude.use ? await window.claude.use('db') : null; } catch (e) { db = null; }
+  if (db) { DB = db; S.mode = 'db'; subscribeDb(); }
+  else { loadLocal(); onData(); }
+  render();
+}
+
+/* ===================== Render ===================== */
+let rafId = 0;
+function render() { if (rafId) return; rafId = requestAnimationFrame(() => { rafId = 0; doRender(); }); }
+function keepFocus(fn) {
+  const ae = document.activeElement; const id = ae && ae.id; let pos = null;
+  try { if (ae && ae.selectionStart != null) pos = [ae.selectionStart, ae.selectionEnd]; } catch (e) { pos = null; }
+  fn();
+  if (id) {
+    const el = document.getElementById(id);
+    if (el && !el.disabled) { try { el.focus({ preventScroll: true }); if (pos && el.setSelectionRange) el.setSelectionRange(pos[0], pos[1]); } catch (e) { /* abaikan */ } }
+  }
+}
+const NAV = [
+  { id: 'dashboard', label: 'Dashboard', icon: 'grid' },
+  { id: 'dokter', label: 'Data Dokter', icon: 'users' },
+  { id: 'kalender', label: 'Kalender Jadwal', icon: 'calendar' },
+  { id: 'pengingat', label: 'Pengingat Absensi', icon: 'bell' },
+  { id: 'monitoring', label: 'Monitoring Absensi', icon: 'clipboard' },
+  { id: 'laporan', label: 'Riwayat dan Laporan', icon: 'file' },
+  { id: 'pengaturan', label: 'Pengaturan', icon: 'sliders' }
+];
+const VIEWS = {};
+let dueCount = 0, lastToastDue = -1;
+
+function doRender() {
+  const due = reminderGroups().due.length; dueCount = due;
+  $('#nav').innerHTML = NAV.map(n => '<button class="nav-i" data-nav="' + n.id + '"' + (S.ui.page === n.id ? ' aria-current="page"' : '') + '>' + ic(n.icon) + '<span class="lbl">' + n.label + '</span>' + (n.id === 'pengingat' && due ? '<span class="badge">' + due + '</span>' : '') + '</button>').join('');
+  const nv = NAV.find(n => n.id === S.ui.page) || NAV[0];
+  $('#top-title').textContent = nv.label;
+  const tb = $('#top-badge'); tb.hidden = !due; tb.textContent = due;
+  $('#clinic-box').innerHTML = '<b>' + esc(S.settings.clinicName) + '</b>Sistem pengingat dan monitoring absensi dokter spesialis';
+  const modeTxt = S.mode === 'db' ? '<span class="dot"></span>Tersimpan permanen di database' : S.mode === 'local' ? '<span class="dot warn"></span>Tersimpan di peramban ini' : S.mode === 'loading' ? '<span class="dot warn"></span>Memuat data…' : '<span class="dot warn"></span>Belum dapat menyimpan';
+  $('#side-foot').innerHTML = '<div class="clock" id="clock"></div><div>' + modeTxt + '</div>';
+  tickClock();
+  keepFocus(() => { $('#view').innerHTML = (!S.loaded && !S.slow) ? '<div class="empty">Memuat data…</div>' : (VIEWS[S.ui.page] || VIEWS.dashboard)(); });
+}
+function onData() {
+  render();
+  const due = reminderGroups().due.length;
+  if (S.loaded && due !== lastToastDue) {
+    if (due > 0 && due > Math.max(lastToastDue, 0)) toast(due + ' pengingat absensi perlu diproses', 'info', { label: 'Lihat', fn: () => go('pengingat') });
+    lastToastDue = due;
+  }
+}
+function tickClock() {
+  const el = $('#clock'); if (!el) return;
+  const n = new Date();
+  el.textContent = HARI[n.getDay()] + ', ' + n.getDate() + ' ' + BULAN_S[n.getMonth()] + ' ' + n.getFullYear() + ' · ' + pad(n.getHours()) + '.' + pad(n.getMinutes());
+}
+let lastDay = todayStr();
+setInterval(() => {
+  tickClock();
+  const t = todayStr(), dayChanged = t !== lastDay; lastDay = t;
+  if (S.loaded) { const d = reminderGroups().due.length; if (d !== dueCount || dayChanged) onData(); }
+}, 30000);
+
+function go(page) {
+  if (location.hash !== '#' + page) location.hash = page; else { S.ui.page = page; render(); }
+  closeMenu();
+}
+function routeFromHash() {
+  const h = location.hash.replace('#', '');
+  S.ui.page = NAV.some(n => n.id === h) ? h : 'dashboard';
+  render(); window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', routeFromHash);
+function closeMenu() { $('#side').classList.remove('open'); $('#scrim').classList.remove('open'); }
+
+function toast(msg, kind, action) {
+  const el = document.createElement('div');
+  el.className = 'toast' + (kind === 'err' ? ' err' : '');
+  el.innerHTML = '<span style="flex:1;min-width:0">' + esc(msg) + '</span>';
+  if (action) { const b = document.createElement('button'); b.textContent = action.label; b.addEventListener('click', () => { action.fn(); el.remove(); }); el.appendChild(b); }
+  $('#toasts').appendChild(el);
+  setTimeout(() => el.remove(), kind === 'err' ? 8000 : 5500);
+}
+
+/* ===================== Komponen tampilan ===================== */
+function pageHead(title, sub, actions) {
+  return '<div class="page-head"><div><h1>' + title + '</h1>' + (sub ? '<p class="sub">' + sub + '</p>' : '') + '</div><div class="head-actions">' + (actions || '') + '</div></div>';
+}
+function statusSelect(s) {
+  const st = ST[s.attendance] || ST.belum;
+  return '<span class="selw ' + st.cls + '"><select data-act="set-status" data-id="' + esc(s.id) + '" aria-label="Status absensi ' + esc(docName(dOf(s))) + '">' +
+    Object.keys(ST).map(k => '<option value="' + k + '"' + (k === s.attendance ? ' selected' : '') + '>' + ST[k].label + '</option>').join('') + '</select></span>';
+}
+function statusChip(a) { const st = ST[a] || ST.belum; return '<span class="chip ' + st.cls + '">' + st.label + '</span>'; }
+function readOnlyBanner() {
+  if (S.mode === 'revoked') return '<div class="banner bad">' + ic('alert') + '<p>Akses ke penyimpanan dicabut. Muat ulang halaman atau minta pemilik membagikan kembali.</p></div>';
+  if (S.readOnly) return '<div class="banner warn">' + ic('alert') + '<p>Akun ini hanya dapat melihat data. Perubahan hanya bisa disimpan oleh pemilik atau editor.</p></div>';
+  if (S.slow) return '<div class="banner warn">' + ic('alert') + '<p>Data belum dapat dijangkau. Data yang tampil mungkin belum terbaru. Periksa koneksi internet.</p></div>';
+  if (S.mode === 'memory') return '<div class="banner warn">' + ic('alert') + '<p>Peramban ini memblokir penyimpanan lokal, jadi data hilang saat halaman ditutup. Unduh cadangan di menu Pengaturan secara berkala.</p></div>';
+  return '';
+}
+function sampleBanner() {
+  const has = docs().some(d => d.sample);
+  if (!has || S.settings.sampleDismissed || S.mode === 'loading') return '';
+  return '<div class="banner">' + ic('info') + '<p><b>Data awal berupa contoh.</b> Nama dokter dan nomor telepon di sini hanya contoh dan semuanya dapat diubah atau dihapus. Nomor WhatsApp contoh belum nomor sungguhan.</p><button class="btn sm" data-act="del-sample">Hapus data contoh</button><button class="btn sm" data-act="dismiss-sample">Tutup</button></div>';
+}
+function scheduleRow(s, opts) {
+  opts = opts || {};
+  const d = dOf(s);
+  const num = waNumber(d.phone);
+  const wa = num && s.attendance !== 'dibatalkan' ? '<a class="btn sm wa" href="https://wa.me/' + num + '?text=' + encodeURIComponent(waMessage(s)) + '" target="_blank" rel="noopener" data-act="wa-log" data-id="' + esc(s.id) + '" title="Buka WhatsApp dengan pesan pengingat">' + ic('message') + 'WhatsApp</a>' : '';
+  const tools = opts.edit ? '<button class="icon-btn plain" data-act="sched-edit" data-id="' + esc(s.id) + '" aria-label="Ubah jadwal">' + ic('edit') + '</button><button class="icon-btn plain" data-act="sched-del" data-id="' + esc(s.id) + '" aria-label="Hapus jadwal">' + ic('trash') + '</button>' : '';
+  return '<div class="srow"><div class="t">' + fmtJam(s.start, s.end) + '</div><div class="who"><span class="avatar">' + esc(initials(d)) + '</span><div><div class="nm">' + esc(docName(d)) + '</div><div class="sp">' + esc(d.specialty) + '</div></div></div><div class="act">' + statusSelect(s) + wa + tools + '</div>' + (s.note ? '<div class="note">' + esc(s.note) + '</div>' : '') + '</div>';
+}
+function remActions(s, compact) {
+  const d = dOf(s), num = waNumber(d.phone);
+  const wa = num
+    ? '<a class="btn sm wa" href="https://wa.me/' + num + '?text=' + encodeURIComponent(waMessage(s)) + '" target="_blank" rel="noopener" data-act="wa-log" data-id="' + esc(s.id) + '">' + ic('message') + 'Kirim via WhatsApp</a>'
+    : '<span class="chip idle" title="Isi nomor di Data Dokter">Nomor belum diisi</span>';
+  const copy = compact ? '' : '<button class="btn sm" data-act="rem-copy" data-id="' + esc(s.id) + '">' + ic('copy') + 'Salin pesan</button>';
+  const done = s.remindDone
+    ? '<button class="btn sm" data-act="rem-undo" data-id="' + esc(s.id) + '">Buka kembali</button>'
+    : '<button class="btn sm primary" data-act="rem-done" data-id="' + esc(s.id) + '">' + ic('check') + 'Tandai selesai</button>';
+  return wa + copy + done;
+}
+function logsFor(id) { return Object.values(S.logs).filter(l => l.scheduleId === id).sort((a, b) => b.sentAt - a.sentAt); }
+
+/* ===================== Halaman: Dashboard ===================== */
+VIEWS.dashboard = function () {
+  const t = todayStr(), d = S.ui.dashDate || t, isToday = d === t;
+  const list = schedulesOn(d).sort(byTime);
+  const act = list.filter(s => s.attendance !== 'dibatalkan');
+  const n = k => list.filter(s => s.attendance === k).length;
+  const nDocs = new Set(act.map(s => s.doctorId)).size;
+  const all = docs(), aktif = all.filter(x => x.active).length;
+  const when = isToday ? 'hari ini' : fmtShort(d);
+  const g = reminderGroups();
+  const now = new Date(), horizon = addDays(t, 7);
+  const up = scheds().filter(s => s.attendance !== 'dibatalkan' && s.date >= t && s.date <= horizon && dtOf(s.date, s.end) > now).sort(byTime).slice(0, 8);
+  const stat = (label, val, sub, tone, icon) => '<div class="stat ' + (tone || '') + '"><div class="stat-top"><span>' + label + '</span>' + ic(icon) + '</div><div class="stat-val">' + val + '</div><div class="stat-sub">' + sub + '</div></div>';
+  const stats =
+    stat('Dokter spesialis terdaftar', all.length, aktif + ' aktif · ' + (all.length - aktif) + ' nonaktif', '', 'users') +
+    stat('Dokter praktik ' + when, nDocs, act.length + ' jadwal' + (n('dibatalkan') ? ' · ' + n('dibatalkan') + ' dibatalkan' : ''), '', 'calendar') +
+    stat('Sudah absensi', n('sudah'), act.length ? Math.round(n('sudah') / act.length * 100) + '% dari jadwal aktif' : 'Belum ada jadwal', 'ok', 'check') +
+    stat('Belum absensi', n('belum'), n('tidak_hadir') ? n('tidak_hadir') + ' tidak hadir' : 'Tidak ada yang tidak hadir', 'warn', 'clock');
+  const dateCtl = '<div class="date-nav"><button class="icon-btn" data-act="dash-prev" aria-label="Hari sebelumnya">' + ic('left') + '</button><input type="date" id="dash-date" value="' + d + '" data-act="dash-set" aria-label="Pilih tanggal"><button class="icon-btn" data-act="dash-next" aria-label="Hari berikutnya">' + ic('right') + '</button>' + (isToday ? '' : '<button class="btn" data-act="dash-today">Hari ini</button>') + '</div>';
+  const left = '<div class="card"><div class="card-h"><h2>Jadwal dokter · ' + fmtLong(d) + '</h2><button class="btn sm primary" data-act="sched-add" data-date="' + d + '">' + ic('plus') + 'Tambah jadwal</button></div>' +
+    (list.length ? list.map(s => scheduleRow(s, { edit: true })).join('') : '<div class="empty"><h3>Tidak ada jadwal praktik</h3>Belum ada dokter terjadwal pada tanggal ini.<br><button class="btn primary" data-act="sched-add" data-date="' + d + '">' + ic('plus') + 'Buat jadwal</button></div>') + '</div>';
+  const dueCard = '<div class="card"><div class="card-h"><h2>Pengingat perlu diproses</h2>' + (g.due.length ? '<span class="chip bad">' + g.due.length + '</span>' : '') + '</div>' +
+    (g.due.length ? g.due.slice(0, 4).map(s => '<div class="nrow"><div class="top"><div><div class="nm">' + esc(docName(dOf(s))) + '</div><div class="meta">' + esc(dOf(s).specialty) + '</div></div></div><div class="meta">' + relDay(s.date) + ' · ' + fmtJam(s.start, s.end) + '</div><div class="btns">' + remActions(s, true) + '</div></div>').join('') + (g.due.length > 4 ? '<div class="nrow"><button class="btn sm" data-nav="pengingat">Lihat semua ' + g.due.length + ' pengingat</button></div>' : '')
+      : '<div class="empty" style="padding:22px 18px">Tidak ada pengingat yang menunggu.</div>') + '</div>';
+  let upHtml = '', lastD = '';
+  up.forEach(s => {
+    if (s.date !== lastD) { upHtml += '<div class="daylbl">' + relDay(s.date) + ' · ' + fmtLong(s.date) + '</div>'; lastD = s.date; }
+    const rs = s.remindDone ? '<span class="chip ok">Pengingat selesai</span>' : remindAt(s) <= now ? '<span class="chip bad">Perlu diingatkan</span>' : '<span class="chip sky">Diingatkan ' + fmtDT(remindAt(s)) + '</span>';
+    upHtml += '<div class="nrow"><div class="top"><div><div class="nm">' + esc(docName(dOf(s))) + '</div><div class="meta">' + esc(dOf(s).specialty) + ' · <span class="mono">' + fmtJam(s.start, s.end) + '</span></div></div></div><div>' + rs + '</div></div>';
+  });
+  const upCard = '<div class="card"><div class="card-h"><h2>Jadwal praktik 7 hari ke depan</h2></div>' + (upHtml || '<div class="empty" style="padding:22px 18px">Belum ada jadwal mendatang.</div>') + '</div>';
+  return pageHead('Dashboard', 'Ringkasan jadwal dan absensi dokter spesialis pada tanggal terpilih.', dateCtl) + readOnlyBanner() + sampleBanner() + '<div class="stats">' + stats + '</div><div class="dash-grid">' + left + '<div class="stack">' + dueCard + upCard + '</div></div>';
+};
+
+/* ===================== Halaman: Data Dokter ===================== */
+VIEWS.dokter = function () {
+  const f = S.ui.f, all = docs();
+  const specs = Array.from(new Set(all.map(d => d.specialty).concat(SPECIALTIES))).sort();
+  const q = f.docQ.trim().toLowerCase();
+  const list = all.filter(d => (!q || (docName(d) + ' ' + d.specialty + ' ' + d.phone).toLowerCase().indexOf(q) >= 0) && (!f.docSpec || d.specialty === f.docSpec) && (!f.docStatus || (f.docStatus === 'aktif') === !!d.active));
+  const toolbar = '<div class="toolbar"><label class="fld grow"><span>Cari dokter</span><input type="search" id="docQ" data-f="docQ" value="' + esc(f.docQ) + '" placeholder="Nama, spesialisasi, atau nomor"></label>' +
+    '<label class="fld"><span>Spesialisasi</span><select class="in" data-f="docSpec"><option value="">Semua</option>' + specs.map(s => '<option' + (f.docSpec === s ? ' selected' : '') + '>' + esc(s) + '</option>').join('') + '</select></label>' +
+    '<label class="fld"><span>Status</span><select class="in" data-f="docStatus"><option value="">Semua</option><option value="aktif"' + (f.docStatus === 'aktif' ? ' selected' : '') + '>Aktif</option><option value="nonaktif"' + (f.docStatus === 'nonaktif' ? ' selected' : '') + '>Nonaktif</option></select></label></div>';
+  let body;
+  if (!all.length) body = '<div class="empty"><h3>Belum ada dokter terdaftar</h3>Tambahkan dokter spesialis atau muat data awal contoh untuk mencoba aplikasi.<br><button class="btn primary" data-act="doc-add">' + ic('plus') + 'Tambah dokter</button> <button class="btn" data-act="seed-load">Muat data awal contoh</button></div>';
+  else if (!list.length) body = '<div class="empty"><h3>Tidak ada hasil</h3>Ubah kata kunci atau filter pencarian.</div>';
+  else body = '<div class="tw"><table class="rt"><thead><tr><th>Dokter</th><th>Spesialisasi</th><th>WhatsApp</th><th>Hari praktik</th><th>Jam</th><th>Status</th><th>Aksi</th></tr></thead><tbody>' +
+    list.map(d => '<tr><td data-l=""><div class="cell-name"><span class="avatar">' + esc(initials(d)) + '</span><div><b>' + esc(docName(d)) + '</b></div></div></td><td data-l="Spesialisasi">' + esc(d.specialty) + '</td><td data-l="WhatsApp" class="mono">' + (esc(d.phone) || '<span class="muted">—</span>') + '</td><td data-l="Hari praktik"><div class="days">' + WEEK_ORDER.filter(x => (d.days || []).indexOf(x) >= 0).map(x => '<i>' + HARI_S[x] + '</i>').join('') + '</div></td><td data-l="Jam" class="mono">' + fmtJam(d.start, d.end) + '</td><td data-l="Status"><button class="chip ' + (d.active ? 'ok' : 'idle') + '" style="border:0;cursor:pointer" data-act="doc-toggle" data-id="' + esc(d.id) + '" title="Klik untuk mengubah status">' + (d.active ? 'Aktif' : 'Nonaktif') + '</button></td><td data-l=""><div class="row-act"><button class="btn sm" data-act="sched-add" data-doctor="' + esc(d.id) + '">' + ic('calendar') + 'Jadwal</button><button class="icon-btn" data-act="doc-edit" data-id="' + esc(d.id) + '" aria-label="Ubah dokter">' + ic('edit') + '</button><button class="icon-btn" data-act="doc-del" data-id="' + esc(d.id) + '" aria-label="Hapus dokter">' + ic('trash') + '</button></div></td></tr>').join('') + '</tbody></table></div>';
+  return pageHead('Data Dokter', 'Kelola dokter spesialis, hari praktik, dan nomor WhatsApp untuk pengingat.', '<button class="btn primary" data-act="doc-add">' + ic('plus') + 'Tambah dokter</button>') + readOnlyBanner() + (all.length ? '<div class="card"><div class="card-b" style="padding-bottom:2px">' + toolbar + '</div>' + body + '</div>' : '<div class="card">' + body + '</div>');
+};
+
+/* ===================== Halaman: Kalender ===================== */
+function monthCells(ym) {
+  const p = ym.split('-').map(Number), first = new Date(p[0], p[1] - 1, 1);
+  const lead = (first.getDay() + 6) % 7, start = new Date(p[0], p[1] - 1, 1 - lead), cells = [];
+  const days = new Date(p[0], p[1], 0).getDate(), total = Math.ceil((lead + days) / 7) * 7;
+  for (let i = 0; i < total; i++) { const d = new Date(start); d.setDate(start.getDate() + i); cells.push({ date: ymd(d), out: d.getMonth() !== p[1] - 1, n: d.getDate() }); }
+  return cells;
+}
+VIEWS.kalender = function () {
+  const ym = S.ui.calMonth, p = ym.split('-').map(Number), t = todayStr(), sel = S.ui.calSel, cd = S.ui.calDoc;
+  const byDate = {};
+  scheds().forEach(s => { if (cd && s.doctorId !== cd) return; (byDate[s.date] = byDate[s.date] || []).push(s); });
+  const cells = monthCells(ym).map(c => {
+    const l = byDate[c.date] || [];
+    const pts = l.slice(0, 4).map(s => '<i class="pt ' + (ST[s.attendance] || ST.belum).cls + '"></i>').join('');
+    return '<button class="cal-d' + (c.out ? ' out' : '') + (c.date === t ? ' today' : '') + (c.date === sel ? ' sel' : '') + '" data-act="cal-day" data-date="' + c.date + '" aria-label="' + fmtLong(c.date) + (l.length ? ', ' + l.length + ' jadwal' : ', tidak ada jadwal') + '"><span class="n">' + c.n + '</span>' + (l.length ? '<span class="mk"><span class="cnt">' + l.length + '</span>' + pts + '</span>' : '') + '</button>';
+  }).join('');
+  const list = (byDate[sel] || []).slice().sort(byTime);
+  const docOpts = '<option value="">Semua dokter</option>' + docs().map(d => '<option value="' + esc(d.id) + '"' + (cd === d.id ? ' selected' : '') + '>' + esc(docName(d)) + '</option>').join('');
+  const cal = '<div class="card"><div class="card-h"><div class="date-nav"><button class="icon-btn" data-act="cal-prev" aria-label="Bulan sebelumnya">' + ic('left') + '</button><h2 style="min-width:150px;text-align:center">' + BULAN[p[1] - 1] + ' ' + p[0] + '</h2><button class="icon-btn" data-act="cal-next" aria-label="Bulan berikutnya">' + ic('right') + '</button><button class="btn sm" data-act="cal-today">Hari ini</button></div><div class="date-nav"><input type="date" id="cal-jump" data-act="cal-jump" value="' + sel + '" aria-label="Lompat ke tanggal"></div></div>' +
+    '<div class="cal">' + [1,2,3,4,5,6,0].map(x => '<div class="cal-h">' + HARI_S[x] + '</div>').join('') + cells + '</div>' +
+    '<div class="legend"><span><i class="pt warn dot" style="margin:0"></i>Belum absensi</span><span><i class="pt ok dot" style="margin:0"></i>Sudah absensi</span><span><i class="pt bad dot" style="margin:0"></i>Tidak hadir</span><span><i class="pt idle dot" style="margin:0"></i>Dibatalkan</span></div></div>';
+  const side = '<div class="card"><div class="card-h"><h2>' + fmtLong(sel) + '</h2><button class="btn sm primary" data-act="sched-add" data-date="' + sel + '"' + (cd ? ' data-doctor="' + esc(cd) + '"' : '') + '>' + ic('plus') + 'Tambah jadwal</button></div>' +
+    (list.length ? list.map(s => scheduleRow(s, { edit: true })).join('') : '<div class="empty"><h3>Belum ada jadwal</h3>Tidak ada dokter terjadwal pada tanggal ini' + (cd ? ' untuk dokter terpilih' : '') + '.</div>') + '</div>';
+  return pageHead('Kalender Jadwal', 'Pilih tanggal untuk melihat jadwal. Tanggal berisi jadwal ditandai angka dan titik status.', '<label class="fld" style="min-width:230px"><span class="sr">Filter dokter</span><select class="in" data-act="cal-doc">' + docOpts + '</select></label><button class="btn primary" data-act="sched-add" data-date="' + sel + '"' + (cd ? ' data-doctor="' + esc(cd) + '"' : '') + '>' + ic('plus') + 'Tambah jadwal</button>') + readOnlyBanner() + '<div class="cal-wrap">' + cal + '<div class="stack">' + side + '</div></div>';
+};
+
+/* ===================== Halaman: Pengingat ===================== */
+VIEWS.pengingat = function () {
+  const g = reminderGroups(), tab = S.ui.remTab, list = g[tab === 'due' ? 'due' : tab === 'upcoming' ? 'upcoming' : 'done'].slice(0, 80);
+  const tabs = '<div class="seg" role="tablist"><button class="' + (tab === 'due' ? 'on' : '') + '" data-act="rem-tab" data-tab="due">Perlu diproses' + (g.due.length ? '<span class="cnt">' + g.due.length + '</span>' : '') + '</button><button class="' + (tab === 'upcoming' ? 'on' : '') + '" data-act="rem-tab" data-tab="upcoming">Akan datang (' + g.upcoming.length + ')</button><button class="' + (tab === 'done' ? 'on' : '') + '" data-act="rem-tab" data-tab="done">Selesai (' + g.done.length + ')</button></div>';
+  const items = list.map(s => {
+    const d = dOf(s), ra = remindAt(s), lg = logsFor(s.id);
+    const state = tab === 'done' ? '<span class="chip ok">Selesai</span>' : tab === 'due' ? '<span class="chip bad">Perlu diingatkan sekarang</span>' : '<span class="chip sky">Terjadwal</span>';
+    return '<div class="rem"><div class="rem-top"><div><div class="nm">' + esc(docName(d)) + '</div><div class="muted">' + esc(d.specialty) + '</div></div>' + state + '</div>' +
+      '<dl><dt>Jadwal praktik</dt><dd>' + fmtLong(s.date) + ' · <span class="mono">' + fmtJam(s.start, s.end) + '</span> WIB</dd><dt>Waktu pengingat</dt><dd>' + fmtDT(ra) + ' (' + remLabel(s.remind) + ')</dd>' + (lg.length ? '<dt>Riwayat kirim</dt><dd>Dibuka di WhatsApp ' + lg.length + '× · terakhir ' + fmtStamp(lg[0].sentAt) + '</dd>' : '') + '</dl>' +
+      '<details><summary>Lihat pesan pengingat</summary><pre>' + esc(waMessage(s)) + '</pre></details>' +
+      '<div class="btns">' + remActions(s) + (tab !== 'done' ? '<button class="btn sm" data-act="sched-edit" data-id="' + esc(s.id) + '">' + ic('clock') + 'Ubah waktu pengingat</button>' : '') + '</div></div>';
+  }).join('');
+  const emptyTxt = { due: ['Tidak ada pengingat yang menunggu', 'Pengingat muncul di sini saat waktunya tiba dan jadwal praktik belum selesai.'], upcoming: ['Belum ada pengingat terjadwal', 'Buat jadwal praktik di Kalender Jadwal agar pengingat terisi otomatis.'], done: ['Belum ada pengingat selesai', 'Pengingat yang ditandai selesai akan tersimpan di sini.'] }[tab];
+  return pageHead('Pengingat Absensi', 'Ingatkan dokter melalui WhatsApp sesuai jadwal praktik. Pengingat dihitung otomatis dari jam mulai praktik.', tabs) + readOnlyBanner() +
+    '<div class="card">' + (items || '<div class="empty"><h3>' + emptyTxt[0] + '</h3>' + emptyTxt[1] + '</div>') + '</div>' +
+    '<p class="hint" style="margin-top:12px">Catatan: tombol WhatsApp membuka aplikasi dengan pesan yang sudah terisi. Pengiriman tetap dilakukan manual oleh admin, dan riwayat dicatat saat tombol ditekan.</p>';
+};
+
+/* ===================== Halaman: Monitoring ===================== */
+function presetRange(p) {
+  const t = todayStr(), d = parseYmd(t);
+  if (p === 'today') return [t, t];
+  if (p === 'week') { const mon = addDays(t, -((d.getDay() + 6) % 7)); return [mon, addDays(mon, 6)]; }
+  if (p === 'month') return [ymd(new Date(d.getFullYear(), d.getMonth(), 1)), ymd(new Date(d.getFullYear(), d.getMonth() + 1, 0))];
+  return null;
+}
+function filterScheds(from, to, doc, spec, status) {
+  return scheds().filter(s => (!from || s.date >= from) && (!to || s.date <= to) && (!doc || s.doctorId === doc) && (!spec || dOf(s).specialty === spec) && (!status || s.attendance === status)).sort(byTime);
+}
+function filterBar(prefix, withStatus) {
+  const f = S.ui.f, all = docs(), specs = Array.from(new Set(all.map(d => d.specialty).concat(SPECIALTIES))).sort();
+  return '<label class="fld"><span>Dari tanggal</span><input type="date" id="' + prefix + 'From" data-f="' + prefix + 'From" value="' + f[prefix + 'From'] + '"></label>' +
+    '<label class="fld"><span>Sampai tanggal</span><input type="date" id="' + prefix + 'To" data-f="' + prefix + 'To" value="' + f[prefix + 'To'] + '"></label>' +
+    '<label class="fld"><span>Nama dokter</span><select class="in" data-f="' + prefix + 'Doc"><option value="">Semua dokter</option>' + all.map(d => '<option value="' + esc(d.id) + '"' + (f[prefix + 'Doc'] === d.id ? ' selected' : '') + '>' + esc(docName(d)) + '</option>').join('') + '</select></label>' +
+    '<label class="fld"><span>Spesialisasi</span><select class="in" data-f="' + prefix + 'Spec"><option value="">Semua</option>' + specs.map(s => '<option' + (f[prefix + 'Spec'] === s ? ' selected' : '') + '>' + esc(s) + '</option>').join('') + '</select></label>' +
+    (withStatus ? '<label class="fld"><span>Status absensi</span><select class="in" data-f="monStatus"><option value="">Semua</option>' + Object.keys(ST).map(k => '<option value="' + k + '"' + (f.monStatus === k ? ' selected' : '') + '>' + ST[k].label + '</option>').join('') + '</select></label>' : '');
+}
+VIEWS.monitoring = function () {
+  const f = S.ui.f, list = filterScheds(f.monFrom, f.monTo, f.monDoc, f.monSpec, f.monStatus);
+  const cnt = k => list.filter(s => s.attendance === k).length;
+  const presets = [['today', 'Hari ini'], ['week', 'Minggu ini'], ['month', 'Bulan ini']].map(x => '<button class="' + (f.monPreset === x[0] ? 'on' : '') + '" data-act="mon-preset" data-p="' + x[0] + '">' + x[1] + '</button>').join('');
+  const sum = '<div class="sumbar">' + Object.keys(ST).map(k => '<span class="chip ' + ST[k].cls + '">' + ST[k].label + ': ' + cnt(k) + '</span>').join('') + '<span class="chip idle">Total: ' + list.length + '</span></div>';
+  const rows = list.map((s, i) => { const d = dOf(s); return '<tr><td data-l="No." class="num">' + (i + 1) + '</td><td data-l="Tanggal praktik">' + fmtDay(s.date) + ' ' + parseYmd(s.date).getFullYear() + '</td><td data-l="Nama dokter"><b>' + esc(docName(d)) + '</b></td><td data-l="Spesialisasi">' + esc(d.specialty) + '</td><td data-l="Jam praktik" class="mono">' + fmtJam(s.start, s.end) + '</td><td data-l="Status absensi"><div class="row-act" style="align-items:center">' + statusSelect(s) + (s.attendance === 'belum' ? '<button class="icon-btn" data-act="quick-hadir" data-id="' + esc(s.id) + '" aria-label="Tandai sudah absensi" title="Tandai sudah absensi">' + ic('check') + '</button>' : '') + '</div></td><td data-l="Keterangan"><input type="text" class="note-in" id="note-' + esc(s.id) + '" data-act="set-note" data-id="' + esc(s.id) + '" value="' + esc(s.note || '') + '" placeholder="Tambah keterangan" aria-label="Keterangan"></td></tr>'; }).join('');
+  return pageHead('Monitoring Absensi', 'Perbarui status kehadiran dokter dan tambahkan keterangan. Perubahan langsung tersimpan.', '<div class="seg">' + presets + '</div>') + readOnlyBanner() +
+    '<div class="card"><div class="card-b" style="padding-bottom:2px"><div class="toolbar">' + filterBar('mon', true) + '</div>' + sum + '</div>' +
+    (list.length ? '<div class="tw"><table class="rt"><thead><tr><th class="num">No.</th><th>Tanggal praktik</th><th>Nama dokter</th><th>Spesialisasi</th><th>Jam praktik</th><th>Status absensi</th><th>Keterangan</th></tr></thead><tbody>' + rows + '</tbody></table></div>' : '<div class="empty"><h3>Tidak ada jadwal pada filter ini</h3>Ubah rentang tanggal atau buat jadwal baru.<br><button class="btn primary" data-act="sched-add" data-date="' + (f.monFrom || todayStr()) + '">' + ic('plus') + 'Tambah jadwal</button></div>') + '</div>';
+};
+
+/* ===================== Halaman: Riwayat & Laporan ===================== */
+function reportData() {
+  const f = S.ui.f, tab = f.repTab, list = filterScheds(f.repFrom, f.repTo, f.repDoc, f.repSpec, '');
+  const period = (f.repFrom ? fmtShort(f.repFrom) : 'Awal') + ' s.d. ' + (f.repTo ? fmtShort(f.repTo) : 'Akhir');
+  if (tab === 'jadwal') return { title: 'Riwayat Jadwal Praktik Dokter', period: period, head: ['No.', 'Tanggal', 'Dokter', 'Spesialisasi', 'Jam', 'Status', 'Keterangan'], rows: list.map((s, i) => [i + 1, fmtShort(s.date), docName(dOf(s)), dOf(s).specialty, fmtJam(s.start, s.end), ST[s.attendance].label, s.note || '']), file: 'Riwayat-Jadwal' };
+  if (tab === 'pengingat') {
+    const ids = new Set(list.map(s => s.id));
+    const lg = Object.values(S.logs).filter(l => ids.has(l.scheduleId) || (!S.schedules[l.scheduleId] && (!f.repFrom || l.date >= f.repFrom) && (!f.repTo || l.date <= f.repTo) && (!f.repDoc || l.doctorId === f.repDoc) && (!f.repSpec || l.specialty === f.repSpec))).sort((a, b) => b.sentAt - a.sentAt);
+    return { title: 'Riwayat Pengingat Absensi', period: period, head: ['No.', 'Dikirim pada', 'Dokter', 'Spesialisasi', 'Tanggal praktik', 'Jam', 'Kanal'], rows: lg.map((l, i) => [i + 1, fmtStamp(l.sentAt), l.doctorName, l.specialty, fmtShort(l.date), fmtJam(l.start, l.end), l.channel || 'WhatsApp']), file: 'Riwayat-Pengingat' };
+  }
+  const by = {};
+  list.forEach(s => { (by[s.date] = by[s.date] || []).push(s); });
+  const rows = Object.keys(by).sort().map((dt, i) => {
+    const a = by[dt], c = k => a.filter(s => s.attendance === k).length, aktif = a.length - c('dibatalkan');
+    return [i + 1, fmtLong(dt), a.length, c('sudah'), c('belum'), c('tidak_hadir'), c('dibatalkan'), aktif ? Math.round(c('sudah') / aktif * 100) + '%' : '-'];
+  });
+  return { title: 'Rekap Absensi per Tanggal', period: period, head: ['No.', 'Tanggal', 'Total jadwal', 'Sudah absensi', 'Belum absensi', 'Tidak hadir', 'Dibatalkan', '% Hadir'], rows: rows, file: 'Rekap-Absensi', numCols: [2, 3, 4, 5, 6, 7] };
+}
+VIEWS.laporan = function () {
+  const f = S.ui.f, r = reportData();
+  const tabs = '<div class="seg" role="tablist">' + [['jadwal', 'Riwayat jadwal'], ['pengingat', 'Riwayat pengingat'], ['rekap', 'Rekap per tanggal']].map(x => '<button class="' + (f.repTab === x[0] ? 'on' : '') + '" data-act="rep-tab" data-tab="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>';
+  const nums = r.numCols || [];
+  const body = r.rows.length ? '<div class="tw"><table class="rt"><thead><tr>' + r.head.map((h, i) => '<th class="' + (i === 0 || nums.indexOf(i) >= 0 ? 'num' : '') + '">' + h + '</th>').join('') + '</tr></thead><tbody>' + r.rows.map(row => '<tr>' + row.map((c, i) => '<td data-l="' + esc(r.head[i]) + '" class="' + (i === 0 || nums.indexOf(i) >= 0 ? 'num' : '') + '">' + esc(c) + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>' : '<div class="empty"><h3>Tidak ada data</h3>' + (f.repTab === 'pengingat' ? 'Riwayat pengingat tercatat saat tombol WhatsApp pada halaman Pengingat Absensi ditekan.' : 'Ubah filter tanggal atau dokter untuk melihat data lain.') + '</div>';
+  return pageHead('Riwayat dan Laporan', 'Telusuri riwayat, lalu ekspor laporan sesuai filter ke Excel atau PDF A4.', '<button class="btn" data-act="rep-xlsx"' + (r.rows.length ? '' : ' disabled') + '>' + ic('download') + 'Ekspor Excel</button><button class="btn primary" data-act="rep-pdf"' + (r.rows.length ? '' : ' disabled') + '>' + ic('download') + 'Ekspor PDF A4 (siap cetak)</button>') + readOnlyBanner() +
+    '<div style="margin-bottom:14px">' + tabs + '</div><div class="card"><div class="card-b" style="padding-bottom:2px"><div class="toolbar">' + filterBar('rep', false) + '</div><p class="hint" style="margin:0 0 12px">' + esc(r.title) + ' · ' + esc(r.period) + ' · ' + r.rows.length + ' baris. Untuk mencetak, buka berkas PDF A4 hasil ekspor lalu cetak dari sana.</p></div>' + body + '</div>';
+};
+
+/* ===================== Halaman: Pengaturan ===================== */
+VIEWS.pengaturan = function () {
+  const st = S.settings, dr = st.defaultRemind || { mode: '1d' };
+  const sampleDoc = docs()[0] || { prefix: 'dr.', name: 'Contoh Dokter', suffix: 'Sp.PD', specialty: 'Spesialis Penyakit Dalam' };
+  const prev = String(st.template || '').split('{nama_dokter}').join(docName(sampleDoc)).split('{spesialisasi}').join(sampleDoc.specialty).split('{tanggal}').join(fmtLong(addDays(todayStr(), 1))).split('{jam}').join('08.00–12.00 WIB').split('{klinik}').join(st.clinicName);
+  const modeTxt = S.mode === 'db' ? 'Database claude.ai. Data tersimpan permanen dan dibagikan ke semua yang punya akses edit.' : S.mode === 'local' ? 'Penyimpanan lokal peramban ini. Data tidak ikut berpindah ke perangkat lain; gunakan cadangan untuk memindahkannya.' : 'Belum ada penyimpanan aktif.';
+  const remOpts = [['1d', '1 hari sebelumnya'], ['3h', '3 jam sebelumnya'], ['1h', '1 jam sebelumnya'], ['custom', 'Waktu khusus']].map(o => '<option value="' + o[0] + '"' + (dr.mode === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('');
+  return pageHead('Pengaturan', 'Identitas klinik, pengingat bawaan, isi pesan WhatsApp, dan pengelolaan data.') + readOnlyBanner() +
+    '<div class="set-grid"><div class="stack">' +
+    '<div class="card"><div class="card-h"><h2>Identitas</h2></div><div class="card-b form-col"><label class="fld"><span>Nama klinik</span><input type="text" id="set-clinic" value="' + esc(st.clinicName) + '"></label><label class="fld"><span>Nama admin (tercantum di laporan)</span><input type="text" id="set-admin" value="' + esc(st.adminName) + '" placeholder="Contoh: Bagian Kepegawaian"></label><div><button class="btn primary" data-act="set-save-id">Simpan identitas</button></div></div></div>' +
+    '<div class="card"><div class="card-h"><h2>Pengingat bawaan</h2></div><div class="card-b form-col"><label class="fld"><span>Waktu pengingat untuk jadwal baru</span><select class="in" id="set-rem">' + remOpts + '</select></label><div class="row2" id="set-rem-c" ' + (dr.mode === 'custom' ? '' : 'hidden') + '><label class="fld"><span>Selisih</span><input type="number" id="set-rem-v" min="1" value="' + esc(dr.value || 30) + '"></label><label class="fld"><span>Satuan</span><select class="in" id="set-rem-u">' + ['menit', 'jam', 'hari'].map(u => '<option' + (dr.unit === u ? ' selected' : '') + '>' + u + '</option>').join('') + '</select></label></div><div><button class="btn primary" data-act="set-save-rem">Simpan pengingat bawaan</button></div></div></div>' +
+    '</div><div class="stack">' +
+    '<div class="card"><div class="card-h"><h2>Isi pesan WhatsApp</h2></div><div class="card-b form-col"><label class="fld"><span>Templat pesan</span><textarea id="set-tpl" rows="6">' + esc(st.template) + '</textarea></label><div class="ph"><span class="hint">Penanda yang dapat dipakai:</span><code>{nama_dokter}</code><code>{spesialisasi}</code><code>{tanggal}</code><code>{jam}</code><code>{klinik}</code></div><div><div class="lbl-t">Pratinjau</div><pre style="white-space:pre-wrap;font-family:var(--f-body);background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin:6px 0 0" id="set-prev">' + esc(prev) + '</pre></div><div class="row-act"><button class="btn primary" data-act="set-save-tpl">Simpan templat</button><button class="btn" data-act="tpl-reset">Kembalikan standar</button></div></div></div>' +
+    '<div class="card"><div class="card-h"><h2>Data dan cadangan</h2></div><div class="card-b form-col"><p class="hint" style="margin:0"><b>Penyimpanan:</b> ' + modeTxt + '</p><div class="row-act"><button class="btn" data-act="backup">' + ic('download') + 'Unduh cadangan (JSON)</button><button class="btn" data-act="restore-pick">' + ic('upload') + 'Pulihkan dari cadangan</button><input type="file" id="restore-file" accept=".json,application/json" hidden></div><div class="row-act"><button class="btn" data-act="seed-load">Muat data awal contoh</button><button class="btn danger" data-act="del-sample">Hapus data contoh</button><button class="btn danger" data-act="del-all">Hapus semua data</button></div></div></div>' +
+    '</div></div>';
+};
+
+/* ===================== Modal ===================== */
+let M = null, lastOpener = null;
+function openModal(m) { lastOpener = document.activeElement; M = m; renderModal(true); }
+function closeModal() { M = null; $('#modal-root').innerHTML = ''; if (lastOpener && lastOpener.focus && document.contains(lastOpener)) { try { lastOpener.focus({ preventScroll: true }); } catch (e) { /* abaikan */ } } }
+function renderModal(first) {
+  if (!M) { $('#modal-root').innerHTML = ''; return; }
+  const body = $('#modal-root .modal-body'), sc = body ? body.scrollTop : 0;
+  const ae = document.activeElement, id = ae && ae.id && $('#modal-root').contains(ae) ? ae.id : null;
+  $('#modal-root').innerHTML = M.kind === 'doctor' ? doctorModalHTML() : M.kind === 'sched' ? schedModalHTML() : confirmModalHTML();
+  const nb = $('#modal-root .modal-body'); if (nb) nb.scrollTop = sc;
+  if (M.kind === 'sched') updatePreview();
+  if (M.kind === 'confirm') updateConfirm();
+  if (id && document.getElementById(id)) { try { document.getElementById(id).focus({ preventScroll: true }); } catch (e) { /* abaikan */ } }
+  else if (first) { const f = $('#modal-root input:not([type=checkbox]):not([hidden]), #modal-root select, #modal-root .btn'); if (f) { try { f.focus({ preventScroll: true }); } catch (e) { /* abaikan */ } } }
+}
+function modalShell(title, bodyHTML, footHTML, small) {
+  return '<div class="modal-backdrop" data-act="m-close-bg"><div class="modal' + (small ? ' sm' : '') + '" role="dialog" aria-modal="true" aria-labelledby="m-title"><div class="modal-head"><h2 id="m-title">' + title + '</h2><button class="icon-btn plain" data-act="m-close" aria-label="Tutup">' + ic('x') + '</button></div><div class="modal-body">' + bodyHTML + '</div><div class="modal-foot">' + footHTML + '</div></div></div>';
+}
+function dayChecks(attr, sel) {
+  return '<div class="chk-row">' + WEEK_ORDER.map(x => '<label class="chk"><input type="checkbox" ' + attr + '="' + x + '"' + (sel.indexOf(x) >= 0 ? ' checked' : '') + '><span>' + HARI_S[x] + '</span></label>').join('') + '</div>';
+}
+/* ---- Dokter ---- */
+function openDoctorModal(id) {
+  const d = id ? S.doctors[id] : null;
+  openModal({ kind: 'doctor', editId: id || null, prefix: d ? d.prefix : 'dr.', name: d ? d.name : '', suffix: d ? d.suffix : '', specialty: d ? d.specialty : '', phone: d ? d.phone : '', days: d ? (d.days || []).slice() : [1, 2, 3, 4, 5], start: d ? d.start : '08:00', end: d ? d.end : '12:00', active: d ? !!d.active : true, error: '' });
+}
+function doctorModalHTML() {
+  const m = M;
+  const b = '<div class="row2"><label class="fld"><span>Gelar depan</span><input type="text" id="m-prefix" data-m="prefix" value="' + esc(m.prefix) + '" placeholder="dr."></label><label class="fld"><span>Gelar belakang</span><input type="text" id="m-suffix" data-m="suffix" value="' + esc(m.suffix) + '" placeholder="Sp.PD"></label></div>' +
+    '<label class="fld"><span>Nama dokter *</span><input type="text" id="m-name" data-m="name" value="' + esc(m.name) + '" placeholder="Nama lengkap tanpa gelar" autocomplete="off"></label>' +
+    '<label class="fld"><span>Spesialisasi *</span><input type="text" id="m-spec" data-m="specialty" list="spec-list" value="' + esc(m.specialty) + '" placeholder="Pilih atau ketik spesialisasi"><datalist id="spec-list">' + SPECIALTIES.map(s => '<option value="' + esc(s) + '">').join('') + '</datalist></label>' +
+    '<label class="fld"><span>Nomor telepon / WhatsApp</span><input type="tel" id="m-phone" data-m="phone" value="' + esc(m.phone) + '" placeholder="08xxxxxxxxxx atau 628xxxxxxxxxx" inputmode="tel"><span class="hint">Dipakai untuk membuka WhatsApp. Boleh dikosongkan.</span></label>' +
+    '<div class="fld"><span>Hari praktik</span>' + dayChecks('data-m-day', m.days) + '</div>' +
+    '<div class="row2"><label class="fld"><span>Jam mulai praktik</span><input type="time" id="m-start" data-m="start" value="' + esc(m.start) + '"></label><label class="fld"><span>Jam selesai praktik</span><input type="time" id="m-end" data-m="end" value="' + esc(m.end) + '"></label></div>' +
+    '<label class="switch"><input type="checkbox" id="m-active" data-m="active"' + (m.active ? ' checked' : '') + '>Dokter aktif (dapat dijadwalkan)</label>' +
+    '<div class="preview" id="m-err" ' + (m.error ? '' : 'hidden') + '><span class="err">' + esc(m.error) + '</span></div>';
+  return modalShell(m.editId ? 'Ubah data dokter' : 'Tambah dokter', b, '<button class="btn" data-act="m-close">Batal</button><button class="btn primary" data-act="doc-save">Simpan</button>');
+}
+async function saveDoctor() {
+  const m = M, name = m.name.trim(), spec = m.specialty.trim();
+  const fail = t => { m.error = t; const e = $('#m-err'); e.hidden = false; e.innerHTML = '<span class="err">' + esc(t) + '</span>'; };
+  if (!name) return fail('Nama dokter wajib diisi.');
+  if (!spec) return fail('Spesialisasi wajib diisi.');
+  if (!m.days.length) return fail('Pilih minimal satu hari praktik.');
+  if (!m.start || !m.end || toMin(m.end) <= toMin(m.start)) return fail('Jam selesai harus setelah jam mulai.');
+  const num = waNumber(m.phone);
+  if (m.phone.trim() && (num.length < 9 || num.length > 15)) return fail('Nomor telepon tidak valid. Gunakan 9 sampai 15 digit.');
+  const dup = docs().find(d => d.id !== m.editId && d.name.trim().toLowerCase() === name.toLowerCase() && d.specialty.trim().toLowerCase() === spec.toLowerCase());
+  if (dup) return fail('Dokter dengan nama dan spesialisasi yang sama sudah terdaftar.');
+  const old = m.editId ? S.doctors[m.editId] : null;
+  const data = Object.assign({}, old || {}, { prefix: m.prefix.trim(), name: name, suffix: m.suffix.trim(), specialty: spec, phone: m.phone.trim(), days: m.days.slice().sort(), start: m.start, end: m.end, active: !!m.active, sample: false, createdAt: old ? old.createdAt : Date.now() });
+  const ok = await put('doctors', m.editId || uid('dok'), data);
+  if (ok) { closeModal(); toast(m.editId ? 'Data dokter diperbarui' : 'Dokter ditambahkan'); }
+}
+/* ---- Jadwal ---- */
+function openSchedModal(opts) {
+  opts = opts || {};
+  const edit = opts.id ? S.schedules[opts.id] : null, dr = S.settings.defaultRemind || { mode: '1d' };
+  const doc = edit ? S.doctors[edit.doctorId] : (opts.doctor ? S.doctors[opts.doctor] : docs().find(d => d.active));
+  const date = opts.date || todayStr();
+  const r = edit ? (edit.remind || { mode: '1d' }) : dr;
+  openModal({
+    kind: 'sched', editId: edit ? edit.id : null, tab: 'dates',
+    doctorId: edit ? edit.doctorId : (doc ? doc.id : ''),
+    start: edit ? edit.start : (doc ? doc.start : '08:00'), end: edit ? edit.end : (doc ? doc.end : '12:00'),
+    date: edit ? edit.date : date, dates: edit ? [] : [date], pick: '',
+    weekdays: doc ? (doc.days || []).slice() : [1, 2, 3, 4, 5], from: date, to: addDays(date, 27),
+    remMode: r.mode === 'abs' ? 'custom' : r.mode, remKind: r.mode === 'abs' ? 'abs' : 'rel', remVal: r.mode === 'custom' ? r.value : (dr.value || 30), remUnit: r.mode === 'custom' ? r.unit : (dr.unit || 'menit'), remAbs: r.mode === 'abs' ? r.abs : '',
+    note: edit ? (edit.note || '') : '', attendance: edit ? edit.attendance : 'belum'
+  });
+}
+function schedModalHTML() {
+  const m = M, edit = !!m.editId;
+  const dl = docs().filter(d => d.active || d.id === m.doctorId);
+  const tabs = edit ? '' : '<div class="seg" role="tablist"><button class="' + (m.tab === 'dates' ? 'on' : '') + '" data-act="m-tab" data-tab="dates">' + 'Tanggal tertentu</button><button class="' + (m.tab === 'repeat' ? 'on' : '') + '" data-act="m-tab" data-tab="repeat">' + 'Berulang per hari</button></div>';
+  let dateBlock;
+  if (edit) dateBlock = '<label class="fld"><span>Tanggal praktik</span><input type="date" id="m-date" data-m="date" value="' + esc(m.date) + '"></label>';
+  else if (m.tab === 'dates') dateBlock = '<div class="fld"><span>Tanggal praktik (pilih satu atau beberapa)</span><div class="row2" style="grid-template-columns:minmax(0,1fr) auto;align-items:end"><input type="date" id="m-pick" data-m="pick" data-act="m-pick" value="' + esc(m.pick) + '" aria-label="Pilih tanggal"><button class="btn" data-act="m-date-add">' + ic('plus') + 'Tambah tanggal</button></div><div class="chips" id="m-chips">' + (m.dates.length ? m.dates.slice().sort().map(d => '<span class="dchip">' + fmtDay(d) + ' ' + parseYmd(d).getFullYear() + '<button data-act="m-date-del" data-date="' + d + '" aria-label="Hapus ' + fmtShort(d) + '">' + ic('x') + '</button></span>').join('') : '<span class="hint">Belum ada tanggal dipilih.</span>') + '</div></div>';
+  else dateBlock = '<div class="fld"><span>Ulangi pada hari</span>' + dayChecks('data-m-wd', m.weekdays) + '</div><div class="row2"><label class="fld"><span>Mulai tanggal</span><input type="date" id="m-from" data-m="from" value="' + esc(m.from) + '"></label><label class="fld"><span>Sampai tanggal</span><input type="date" id="m-to" data-m="to" value="' + esc(m.to) + '"></label></div>';
+  const remOpts = [['1d', '1 hari sebelumnya'], ['3h', '3 jam sebelumnya'], ['1h', '1 jam sebelumnya'], ['custom', 'Waktu khusus']].map(o => '<option value="' + o[0] + '"' + (m.remMode === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('');
+  let custom = '';
+  if (m.remMode === 'custom') {
+    custom = '<div class="seg" style="align-self:flex-start"><button class="' + (m.remKind === 'rel' ? 'on' : '') + '" data-act="m-rk" data-k="rel">Selisih sebelum jadwal</button><button class="' + (m.remKind === 'abs' ? 'on' : '') + '" data-act="m-rk" data-k="abs">Tanggal dan jam tertentu</button></div>' +
+      (m.remKind === 'rel' ? '<div class="row2"><label class="fld"><span>Selisih</span><input type="number" min="1" id="m-rv" data-m="remVal" value="' + esc(m.remVal) + '"></label><label class="fld"><span>Satuan</span><select class="in" id="m-ru" data-m="remUnit">' + ['menit', 'jam', 'hari'].map(u => '<option' + (m.remUnit === u ? ' selected' : '') + '>' + u + '</option>').join('') + '</select></label></div>' : '<label class="fld"><span>Ingatkan pada</span><input type="datetime-local" id="m-ra" data-m="remAbs" value="' + esc(m.remAbs) + '"><span class="hint">Hanya untuk satu jadwal.</span></label>');
+  }
+  const b = tabs +
+    '<label class="fld"><span>Dokter *</span><select class="in" id="m-doctor" data-m="doctorId" data-rr="doc">' + (dl.length ? dl.map(d => '<option value="' + esc(d.id) + '"' + (d.id === m.doctorId ? ' selected' : '') + '>' + esc(docName(d)) + ' · ' + esc(d.specialty) + '</option>').join('') : '<option value="">Belum ada dokter aktif</option>') + '</select></label>' +
+    '<div class="row2"><label class="fld"><span>Jam mulai</span><input type="time" id="m-start" data-m="start" value="' + esc(m.start) + '"></label><label class="fld"><span>Jam selesai</span><input type="time" id="m-end" data-m="end" value="' + esc(m.end) + '"></label></div>' +
+    dateBlock +
+    '<div class="fld"><span>Pengingat absensi</span><select class="in" id="m-rem" data-m="remMode" data-rr="1">' + remOpts + '</select></div>' + custom +
+    (edit ? '<label class="fld"><span>Status absensi</span><select class="in" id="m-att" data-m="attendance">' + Object.keys(ST).map(k => '<option value="' + k + '"' + (m.attendance === k ? ' selected' : '') + '>' + ST[k].label + '</option>').join('') + '</select></label>' : '') +
+    '<label class="fld"><span>Keterangan (opsional)</span><input type="text" id="m-note" data-m="note" value="' + esc(m.note) + '" placeholder="Contoh: pengganti, sesi tambahan"></label>' +
+    '<div class="preview" id="m-preview"></div>';
+  return modalShell(edit ? 'Ubah jadwal' : 'Tambah jadwal praktik', b, '<button class="btn" data-act="m-close">Batal</button><button class="btn primary" id="m-save" data-act="sched-save">' + (edit ? 'Simpan perubahan' : 'Simpan jadwal') + '</button>');
+}
+function remindFromM() {
+  const m = M;
+  if (m.remMode !== 'custom') return { mode: m.remMode };
+  if (m.remKind === 'abs') return { mode: 'abs', abs: m.remAbs };
+  return { mode: 'custom', value: Math.max(1, parseInt(m.remVal, 10) || 0), unit: m.remUnit };
+}
+function calcSched() {
+  const m = M, out = { items: [], conflicts: [], offDays: [], errors: [] };
+  const doc = S.doctors[m.doctorId];
+  if (!doc) out.errors.push('Pilih dokter terlebih dahulu.');
+  if (!m.start || !m.end) out.errors.push('Isi jam mulai dan jam selesai.');
+  else if (toMin(m.end) <= toMin(m.start)) out.errors.push('Jam selesai harus setelah jam mulai.');
+  let dates = [];
+  if (m.editId) { if (!m.date) out.errors.push('Pilih tanggal praktik.'); else dates = [m.date]; }
+  else if (m.tab === 'dates') { dates = m.dates.slice().sort(); if (!dates.length) out.errors.push('Tambahkan minimal satu tanggal.'); }
+  else {
+    if (!m.weekdays.length) out.errors.push('Pilih minimal satu hari.');
+    else if (!m.from || !m.to) out.errors.push('Isi rentang tanggal.');
+    else if (m.to < m.from) out.errors.push('Tanggal akhir harus setelah tanggal mulai.');
+    else if (parseYmd(m.to) - parseYmd(m.from) > 366 * 86400000) out.errors.push('Rentang maksimal satu tahun.');
+    else { let d = m.from; while (d <= m.to) { if (m.weekdays.indexOf(parseYmd(d).getDay()) >= 0) dates.push(d); d = addDays(d, 1); } if (!dates.length) out.errors.push('Tidak ada tanggal yang cocok pada rentang ini.'); }
+  }
+  const r = remindFromM();
+  if (m.remMode === 'custom' && m.remKind === 'rel' && !(parseInt(m.remVal, 10) > 0)) out.errors.push('Selisih pengingat harus lebih dari 0.');
+  if (r.mode === 'abs') {
+    if (!r.abs) out.errors.push('Isi tanggal dan jam pengingat.');
+    else if (dates.length > 1) out.errors.push('Waktu pengingat tertentu hanya untuk satu jadwal. Gunakan selisih sebelum jadwal untuk banyak tanggal.');
+    else if (dates.length === 1 && m.start && r.abs >= dates[0] + 'T' + m.start) out.errors.push('Waktu pengingat harus sebelum jam mulai praktik.');
+  }
+  if (!out.errors.length) dates.forEach(date => {
+    const c = findConflicts(m.doctorId, date, m.start, m.end, m.editId);
+    if (c.length) out.conflicts.push({ date: date, with: c[0] }); else out.items.push(date);
+    if (doc && (doc.days || []).indexOf(parseYmd(date).getDay()) < 0) out.offDays.push(date);
+  });
+  out.remind = r;
+  return out;
+}
+function updatePreview() {
+  const el = $('#m-preview'), btn = $('#m-save'); if (!el) return;
+  const c = calcSched(), edit = !!M.editId; let h = '';
+  c.errors.forEach(e => { h += '<div class="err">' + esc(e) + '</div>'; });
+  if (!c.errors.length) {
+    if (c.items.length) h += '<div class="good">' + (edit ? 'Jadwal siap disimpan.' : c.items.length + ' jadwal baru akan dibuat.') + '</div>';
+    c.conflicts.slice(0, 5).forEach(x => { h += '<div class="err">Bentrok: ' + fmtShort(x.date) + ' sudah ada jadwal ' + fmtJam(x.with.start, x.with.end) + ' untuk dokter ini' + (edit ? '.' : ' (dilewati).') + '</div>'; });
+    if (c.conflicts.length > 5) h += '<div class="err">…dan ' + (c.conflicts.length - 5) + ' tanggal bentrok lainnya.</div>';
+    if (c.offDays.length) h += '<div class="wrn">Perhatian: ' + c.offDays.length + ' tanggal bukan hari praktik biasa dokter ini' + (c.offDays.length <= 3 ? ' (' + c.offDays.map(fmtShort).join(', ') + ')' : '') + '.</div>';
+    if (c.items.length && !edit && c.items.some(d => d < todayStr())) h += '<div class="wrn">Tanggal yang sudah lewat dibuat sebagai riwayat dan tidak menghasilkan pengingat.</div>';
+  }
+  el.innerHTML = h || '<span class="muted">Lengkapi isian untuk melihat ringkasan.</span>';
+  if (btn) btn.disabled = !!c.errors.length || !c.items.length;
+}
+async function saveSched() {
+  const c = calcSched(); if (c.errors.length || !c.items.length) return;
+  const m = M, remind = c.remind, t = Date.now();
+  if (m.editId) {
+    const old = S.schedules[m.editId];
+    const changed = old.date !== m.date || old.start !== m.start || JSON.stringify(old.remind || {}) !== JSON.stringify(remind);
+    const data = Object.assign({}, old, { doctorId: m.doctorId, date: m.date, start: m.start, end: m.end, note: m.note.trim(), remind: remind, attendance: m.attendance, remindDone: changed ? false : !!old.remindDone, sample: false });
+    if (m.attendance === 'sudah' && old.attendance !== 'sudah') data.attendAt = t;
+    const ok = await put('schedules', m.editId, data);
+    if (ok) { closeModal(); toast('Jadwal diperbarui'); }
+    return;
+  }
+  const btn = $('#m-save'); if (btn) btn.disabled = true;
+  const tasks = c.items.map((date, i) => () => put('schedules', uid('s'), { doctorId: m.doctorId, date: date, start: m.start, end: m.end, attendance: 'belum', note: m.note.trim(), remind: remind, remindDone: false, createdAt: t + i }));
+  const ok = await runLimited(tasks, 4);
+  if (ok) {
+    closeModal(); toast(c.items.length + ' jadwal ditambahkan' + (c.conflicts.length ? ', ' + c.conflicts.length + ' bentrok dilewati' : ''));
+    const first = c.items[0]; if (first) { S.ui.calSel = first; S.ui.calMonth = first.slice(0, 7); S.ui.dashDate = first === todayStr() ? null : S.ui.dashDate; }
+    render();
+  } else if (btn) btn.disabled = false;
+}
+/* ---- Konfirmasi ---- */
+function askConfirm(o) { openModal(Object.assign({ kind: 'confirm', ok: 'Ya, lanjutkan', danger: false, need: '' }, o)); }
+function confirmModalHTML() {
+  const m = M;
+  return modalShell(esc(m.title), '<div>' + m.body + '</div>' + (m.need ? '<label class="fld"><span>Ketik <b>' + esc(m.need) + '</b> untuk melanjutkan</span><input type="text" id="m-typed" autocomplete="off"></label>' : ''), '<button class="btn" data-act="m-close">Batal</button><button class="btn ' + (m.danger ? 'danger solid' : 'primary') + '" id="m-ok" data-act="m-confirm">' + esc(m.ok) + '</button>', true);
+}
+function updateConfirm() { const b = $('#m-ok'), t = $('#m-typed'); if (b && M.need) b.disabled = !t || t.value.trim() !== M.need; }
+
+/* ===================== Operasi data ===================== */
+async function setAttendance(id, val) {
+  const s = S.schedules[id]; if (!s || s.attendance === val) return;
+  const data = Object.assign({}, s, { attendance: val });
+  if (val === 'sudah') data.attendAt = Date.now();
+  await put('schedules', id, data);
+}
+async function deleteDoctorCascade(id) {
+  const ss = scheds().filter(s => s.doctorId === id);
+  const tasks = ss.map(s => () => del('schedules', s.id)); tasks.push(() => del('doctors', id));
+  return runLimited(tasks, 4);
+}
+async function loadSeed() {
+  const seed = buildSeed(todayStr()), tasks = [];
+  Object.keys(seed.doctors).forEach(id => { if (!S.doctors[id]) tasks.push(() => put('doctors', id, seed.doctors[id])); });
+  Object.keys(seed.schedules).forEach(id => { if (!S.schedules[id] && !scheds().some(s => s.doctorId === seed.schedules[id].doctorId && s.date === seed.schedules[id].date)) tasks.push(() => put('schedules', id, seed.schedules[id])); });
+  if (!tasks.length) { toast('Data awal sudah ada'); return; }
+  const ok = await runLimited(tasks, 4); if (ok) toast('Data awal contoh dimuat');
+}
+async function deleteSample() {
+  const sd = docs().filter(d => d.sample).map(d => d.id);
+  const ss = scheds().filter(s => s.sample || sd.indexOf(s.doctorId) >= 0);
+  const tasks = ss.map(s => () => del('schedules', s.id)).concat(sd.map(id => () => del('doctors', id)));
+  const ok = await runLimited(tasks, 4); if (ok) toast('Data contoh dihapus');
+}
+async function deleteAll() {
+  const tasks = [];
+  ['schedules', 'logs', 'doctors'].forEach(col => Object.keys(S[col]).forEach(id => tasks.push(() => del(col, id))));
+  const ok = await runLimited(tasks, 4); if (ok) toast('Semua data dihapus');
+}
+async function logWa(id) {
+  const s = S.schedules[id]; if (!s) return; const d = dOf(s);
+  await put('logs', uid('l'), { scheduleId: id, doctorId: s.doctorId, doctorName: docName(d), specialty: d.specialty, date: s.date, start: s.start, end: s.end, channel: 'WhatsApp', sentAt: Date.now(), by: S.settings.adminName || '' });
+}
+async function copyText(txt) {
+  try { await navigator.clipboard.writeText(txt); toast('Pesan disalin'); }
+  catch (e) { const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (x) { ok = false; } ta.remove(); toast(ok ? 'Pesan disalin' : 'Salin otomatis diblokir. Pilih teks pesan secara manual.', ok ? '' : 'err'); }
+}
+
+/* ===================== Ekspor ===================== */
+const libs = {};
+function loadLib(key, urls, test) {
+  if (test()) return Promise.resolve();
+  if (libs[key]) return libs[key];
+  libs[key] = (async () => {
+    for (const u of urls) {
+      try { await new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = u; sc.onload = res; sc.onerror = () => rej(new Error('gagal')); document.head.appendChild(sc); }); if (test()) return; } catch (e) { /* coba sumber berikutnya */ }
+    }
+    throw new Error('Pustaka ekspor tidak dapat dimuat');
+  })();
+  libs[key].catch(() => { delete libs[key]; });
+  return libs[key];
+}
+async function saveFile(filename, data) {
+  let dl = null;
+  try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { dl = null; }
+  if (!dl) {
+    try {
+      const blob = data instanceof Blob ? data : new Blob([data], { type: filename.endsWith('.pdf') ? 'application/pdf' : filename.endsWith('.json') ? 'application/json' : 'application/octet-stream' });
+      const url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      toast('Berkas diunduh: ' + filename);
+    } catch (e) { toast('Unduhan gagal dibuat di peramban ini.', 'err'); }
+    return;
+  }
+  try { await dl.save({ filename: filename, data: data }); toast('Berkas siap: ' + filename); }
+  catch (e) { if (e && e.code === 'declined') return; toast('Berkas gagal disimpan (' + ((e && e.code) || 'kesalahan') + ').', 'err'); }
+}
+async function exportXlsx() {
+  const r = reportData(); if (!r.rows.length) return;
+  try { await loadLib('xlsx', ['https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js', 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'], () => !!window.XLSX); }
+  catch (e) { toast('Pustaka Excel gagal dimuat. Periksa koneksi internet.', 'err'); return; }
+  const aoa = [[S.settings.clinicName], [r.title], ['Periode: ' + r.period], ['Dibuat: ' + fmtDT(new Date()) + (S.settings.adminName ? ' oleh ' + S.settings.adminName : '')], [], r.head].concat(r.rows);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = r.head.map((h, i) => ({ wch: Math.min(40, Math.max(String(h).length + 2, ...r.rows.map(x => String(x[i] == null ? '' : x[i]).length + 2))) }));
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, r.title.slice(0, 31));
+  const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  await saveFile(r.file + '_' + todayStr() + '.xlsx', new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+}
+async function exportPdf() {
+  const r = reportData(); if (!r.rows.length) return;
+  try {
+    await loadLib('jspdf', ['https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'], () => !!(window.jspdf && window.jspdf.jsPDF));
+    await loadLib('autotable', ['https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js', 'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js'], () => !!(window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.API && window.jspdf.jsPDF.API.autoTable));
+  } catch (e) { toast('Pustaka PDF gagal dimuat. Periksa koneksi internet.', 'err'); return; }
+  const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.text(S.settings.clinicName.toUpperCase(), 14, 16);
+  doc.setFontSize(11); doc.text(r.title, 14, 22);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.text('Periode: ' + r.period, 14, 27.5);
+  doc.setDrawColor(11, 42, 91); doc.setLineWidth(0.6); doc.line(14, 30, 196, 30);
+  const nums = r.numCols || [];
+  const colStyles = {}; r.head.forEach((h, i) => { if (i === 0 || nums.indexOf(i) >= 0) colStyles[i] = { halign: 'right' }; });
+  if (S.ui.f.repTab === 'jadwal') { colStyles[0] = { halign: 'right', cellWidth: 9 }; colStyles[1] = { cellWidth: 22 }; colStyles[4] = { cellWidth: 22 }; colStyles[5] = { cellWidth: 26 }; }
+  doc.autoTable({ startY: 34, head: [r.head], body: r.rows.map(x => x.map(c => String(c == null ? '' : c).replace(/[–—]/g, '-'))), theme: 'grid', styles: { fontSize: 8, cellPadding: 1.8, lineColor: [200, 208, 224], textColor: [20, 30, 55], overflow: 'linebreak' }, headStyles: { fillColor: [11, 42, 91], textColor: 255, fontStyle: 'bold' }, alternateRowStyles: { fillColor: [244, 247, 252] }, columnStyles: colStyles, margin: { left: 14, right: 14, bottom: 18 } });
+  const n = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= n; i++) {
+    doc.setPage(i); doc.setFontSize(8); doc.setTextColor(100);
+    doc.text('Dicetak ' + fmtDT(new Date()) + (S.settings.adminName ? ' · ' + S.settings.adminName : ''), 14, 289);
+    doc.text('Halaman ' + i + ' dari ' + n, 196, 289, { align: 'right' });
+  }
+  await saveFile(r.file + '_' + todayStr() + '.pdf', doc.output('arraybuffer'));
+}
+async function exportBackup() {
+  const payload = { app: 'absensi-dokter-parung', version: 1, exportedAt: new Date().toISOString(), doctors: S.doctors, schedules: S.schedules, logs: S.logs, settings: S.settings };
+  await saveFile('cadangan-absensi-dokter_' + todayStr() + '.json', JSON.stringify(payload, null, 2));
+}
+async function restoreBackup(file) {
+  let o;
+  try { o = JSON.parse(await file.text()); } catch (e) { toast('Berkas cadangan tidak dapat dibaca.', 'err'); return; }
+  if (!o || o.app !== 'absensi-dokter-parung' || typeof o.doctors !== 'object') { toast('Berkas ini bukan cadangan aplikasi ini.', 'err'); return; }
+  const nd = Object.keys(o.doctors || {}).length, ns = Object.keys(o.schedules || {}).length;
+  askConfirm({ title: 'Pulihkan dari cadangan?', body: 'Cadangan berisi <b>' + nd + ' dokter</b> dan <b>' + ns + ' jadwal</b>. Semua data saat ini akan <b>diganti</b>.', ok: 'Pulihkan data', danger: true, fn: async () => {
+    const tasks = [];
+    ['schedules', 'logs', 'doctors'].forEach(col => Object.keys(S[col]).forEach(id => { if (!(o[col] || {})[id]) tasks.push(() => del(col, id)); }));
+    ['doctors', 'schedules', 'logs'].forEach(col => Object.keys(o[col] || {}).forEach(id => tasks.push(() => put(col, id, o[col][id]))));
+    if (o.settings) tasks.push(() => putSettings(o.settings));
+    const ok = await runLimited(tasks, 4); if (ok) toast('Data berhasil dipulihkan');
+  } });
+}
+
+/* ===================== Penanganan peristiwa ===================== */
+document.addEventListener('click', async e => {
+  const nav = e.target.closest('[data-nav]'); if (nav) { go(nav.dataset.nav); return; }
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const act = el.dataset.act, id = el.dataset.id;
+  if (act === 'm-close-bg') { if (e.target === el) closeModal(); return; }
+  switch (act) {
+    case 'menu-open': $('#side').classList.add('open'); $('#scrim').classList.add('open'); break;
+    case 'menu-close': closeMenu(); break;
+    case 'dash-prev': S.ui.dashDate = addDays(S.ui.dashDate || todayStr(), -1); render(); break;
+    case 'dash-next': S.ui.dashDate = addDays(S.ui.dashDate || todayStr(), 1); render(); break;
+    case 'dash-today': S.ui.dashDate = null; render(); break;
+    case 'doc-add': openDoctorModal(); break;
+    case 'doc-edit': openDoctorModal(id); break;
+    case 'doc-toggle': { const d = S.doctors[id]; if (d) put('doctors', id, Object.assign({}, d, { active: !d.active })); break; }
+    case 'doc-del': { const d = S.doctors[id]; if (!d) break; const n = scheds().filter(s => s.doctorId === id).length; askConfirm({ title: 'Hapus dokter?', body: '<b>' + esc(docName(d)) + '</b> akan dihapus' + (n ? ' bersama <b>' + n + ' jadwal</b> miliknya' : '') + '. Tindakan ini tidak dapat dibatalkan. Untuk menghentikan sementara, ubah status menjadi nonaktif.', ok: 'Hapus dokter', danger: true, fn: async () => { const ok = await deleteDoctorCascade(id); if (ok) toast('Dokter dihapus'); } }); break; }
+    case 'doc-save': await saveDoctor(); break;
+    case 'sched-add': if (el.dataset.doctor && S.doctors[el.dataset.doctor] && !S.doctors[el.dataset.doctor].active) { toast('Dokter ini nonaktif. Aktifkan dulu di Data Dokter.', 'err'); break; } if (!docs().some(d => d.active)) { toast('Tambahkan atau aktifkan dokter terlebih dahulu.', 'err'); go('dokter'); break; } openSchedModal({ date: el.dataset.date || S.ui.calSel || todayStr(), doctor: el.dataset.doctor }); break;
+    case 'sched-edit': openSchedModal({ id: id }); break;
+    case 'sched-del': { const s = S.schedules[id]; if (!s) break; askConfirm({ title: 'Hapus jadwal?', body: 'Jadwal <b>' + esc(docName(dOf(s))) + '</b> pada <b>' + fmtLong(s.date) + '</b> (' + fmtJam(s.start, s.end) + ') akan dihapus.', ok: 'Hapus jadwal', danger: true, fn: async () => { const ok = await del('schedules', id); if (ok) toast('Jadwal dihapus'); } }); break; }
+    case 'sched-save': await saveSched(); break;
+    case 'quick-hadir': await setAttendance(id, 'sudah'); break;
+    case 'cal-prev': { const p = S.ui.calMonth.split('-').map(Number); S.ui.calMonth = ymd(new Date(p[0], p[1] - 2, 1)).slice(0, 7); render(); break; }
+    case 'cal-next': { const p = S.ui.calMonth.split('-').map(Number); S.ui.calMonth = ymd(new Date(p[0], p[1], 1)).slice(0, 7); render(); break; }
+    case 'cal-today': S.ui.calMonth = todayStr().slice(0, 7); S.ui.calSel = todayStr(); render(); break;
+    case 'cal-day': S.ui.calSel = el.dataset.date; S.ui.calMonth = el.dataset.date.slice(0, 7); render(); break;
+    case 'rem-tab': S.ui.remTab = el.dataset.tab; render(); break;
+    case 'rem-done': { const s = S.schedules[id]; if (s) put('schedules', id, Object.assign({}, s, { remindDone: true })); break; }
+    case 'rem-undo': { const s = S.schedules[id]; if (s) put('schedules', id, Object.assign({}, s, { remindDone: false })); break; }
+    case 'rem-copy': { const s = S.schedules[id]; if (s) copyText(waMessage(s)); break; }
+    case 'wa-log': logWa(id); break;
+    case 'mon-preset': { const r = presetRange(el.dataset.p); S.ui.f.monPreset = el.dataset.p; S.ui.f.monFrom = r[0]; S.ui.f.monTo = r[1]; render(); break; }
+    case 'rep-tab': S.ui.f.repTab = el.dataset.tab; render(); break;
+    case 'rep-xlsx': exportXlsx(); break;
+    case 'rep-pdf': exportPdf(); break;
+    case 'set-save-id': { const ok = await putSettings({ clinicName: $('#set-clinic').value.trim() || DEFAULT_SETTINGS.clinicName, adminName: $('#set-admin').value.trim() }); if (ok) toast('Identitas disimpan'); break; }
+    case 'set-save-rem': { const mode = $('#set-rem').value, v = Math.max(1, parseInt($('#set-rem-v').value, 10) || 30); const ok = await putSettings({ defaultRemind: { mode: mode, value: v, unit: $('#set-rem-u').value } }); if (ok) toast('Pengingat bawaan disimpan'); break; }
+    case 'set-save-tpl': { const t = $('#set-tpl').value.trim(); if (!t) { toast('Templat tidak boleh kosong.', 'err'); break; } const ok = await putSettings({ template: t }); if (ok) toast('Templat pesan disimpan'); break; }
+    case 'tpl-reset': { const ok = await putSettings({ template: DEFAULT_TEMPLATE }); if (ok) toast('Templat dikembalikan ke standar'); break; }
+    case 'backup': exportBackup(); break;
+    case 'restore-pick': $('#restore-file').click(); break;
+    case 'seed-load': loadSeed(); break;
+    case 'dismiss-sample': putSettings({ sampleDismissed: true }); break;
+    case 'del-sample': askConfirm({ title: 'Hapus data contoh?', body: 'Dokter dan jadwal contoh yang belum Anda ubah akan dihapus, termasuk semua jadwal milik dokter contoh tersebut.', ok: 'Hapus data contoh', danger: true, fn: deleteSample }); break;
+    case 'del-all': askConfirm({ title: 'Hapus semua data?', body: 'Seluruh dokter, jadwal, dan riwayat pengingat akan dihapus permanen. Unduh cadangan lebih dulu bila perlu.', ok: 'Hapus semua', danger: true, need: 'HAPUS', fn: deleteAll }); break;
+    case 'm-close': closeModal(); break;
+    case 'm-confirm': { const fn = M && M.fn; if (M && M.need) { const t = $('#m-typed'); if (!t || t.value.trim() !== M.need) break; } closeModal(); if (fn) await fn(); break; }
+    case 'm-tab': M.tab = el.dataset.tab; renderModal(); break;
+    case 'm-rk': M.remKind = el.dataset.k; renderModal(); break;
+    case 'm-date-add': { if (M.pick && M.dates.indexOf(M.pick) < 0) M.dates.push(M.pick); M.pick = ''; renderModal(); break; }
+    case 'm-date-del': M.dates = M.dates.filter(d => d !== el.dataset.date); renderModal(); break;
+  }
+});
+document.addEventListener('change', e => {
+  const el = e.target;
+  if (el.id === 'restore-file') { const f = el.files && el.files[0]; if (f) restoreBackup(f); el.value = ''; return; }
+  if (el.id === 'set-rem') { $('#set-rem-c').hidden = el.value !== 'custom'; return; }
+  if (el.dataset.act === 'set-status') { setAttendance(el.dataset.id, el.value); return; }
+  if (el.dataset.act === 'set-note') { const s = S.schedules[el.dataset.id]; if (s && (s.note || '') !== el.value.trim()) put('schedules', s.id, Object.assign({}, s, { note: el.value.trim() })); return; }
+  if (el.dataset.act === 'dash-set') { if (el.value) { S.ui.dashDate = el.value === todayStr() ? null : el.value; render(); } return; }
+  if (el.dataset.act === 'cal-jump') { if (el.value) { S.ui.calSel = el.value; S.ui.calMonth = el.value.slice(0, 7); render(); } return; }
+  if (el.dataset.act === 'cal-doc') { S.ui.calDoc = el.value; render(); return; }
+  if (el.dataset.f) {
+    const k = el.dataset.f; S.ui.f[k] = el.value;
+    if (k === 'monFrom' || k === 'monTo') S.ui.f.monPreset = 'custom';
+    render(); return;
+  }
+  if (M && M.kind === 'doctor') {
+    if (el.dataset.mDay != null) { const v = Number(el.dataset.mDay); M.days = el.checked ? Array.from(new Set(M.days.concat(v))) : M.days.filter(x => x !== v); return; }
+    if (el.dataset.m) { M[el.dataset.m] = el.type === 'checkbox' ? el.checked : el.value; return; }
+  }
+  if (M && M.kind === 'sched') {
+    if (el.dataset.mWd != null) { const v = Number(el.dataset.mWd); M.weekdays = el.checked ? Array.from(new Set(M.weekdays.concat(v))) : M.weekdays.filter(x => x !== v); updatePreview(); return; }
+    if (el.dataset.act === 'm-pick') { if (el.value && M.dates.indexOf(el.value) < 0) M.dates.push(el.value); M.pick = ''; renderModal(); return; }
+    if (el.dataset.m) {
+      M[el.dataset.m] = el.value;
+      if (el.dataset.rr === 'doc') { const d = S.doctors[el.value]; if (d && !M.editId) { M.start = d.start; M.end = d.end; M.weekdays = (d.days || []).slice(); } renderModal(); return; }
+      if (el.dataset.rr) { renderModal(); return; }
+      updatePreview();
+    }
+  }
+});
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset.f === 'docQ') { S.ui.f.docQ = el.value; render(); return; }
+  if (el.id === 'set-tpl') { S.settings = Object.assign({}, S.settings); const sd = docs()[0] || { prefix: 'dr.', name: 'Contoh Dokter', suffix: 'Sp.PD', specialty: 'Spesialisasi' }; $('#set-prev').textContent = el.value.split('{nama_dokter}').join(docName(sd)).split('{spesialisasi}').join(sd.specialty).split('{tanggal}').join(fmtLong(addDays(todayStr(), 1))).split('{jam}').join('08.00–12.00 WIB').split('{klinik}').join(S.settings.clinicName); return; }
+  if (el.id === 'm-typed') { updateConfirm(); return; }
+  if (M && el.dataset.m && el.type !== 'checkbox' && el.tagName !== 'SELECT' && el.dataset.act !== 'm-pick') { M[el.dataset.m] = el.value; if (M.kind === 'sched') updatePreview(); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { if (M) closeModal(); else closeMenu(); return; }
+  if (e.key === 'Enter' && M && M.kind === 'doctor' && e.target.tagName === 'INPUT' && e.target.type !== 'checkbox') { e.preventDefault(); saveDoctor(); }
+  if (e.key === 'Tab' && M) {
+    const f = Array.from($('#modal-root').querySelectorAll('button:not([disabled]),input:not([disabled]):not([hidden]),select:not([disabled]),textarea:not([disabled])')).filter(x => x.offsetParent !== null);
+    if (!f.length) return;
+    const first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+});
+
+/* ===================== Mulai ===================== */
+routeFromHash();
+initStorage();
+</script>
+
+</body>
+</html>
